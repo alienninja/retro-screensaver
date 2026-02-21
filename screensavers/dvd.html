@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bouncing DVD Player</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
+        canvas { display: block; }
+        
+        #fl {
+            position: fixed; inset: 0; background: #fff;
+            opacity: 0; pointer-events: none; transition: opacity 0.05s;
+        }
+        #cm {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff; font: bold 50px Arial;
+            opacity: 0; pointer-events: none; text-align: center;
+            transition: opacity 0.3s; white-space: nowrap;
+            text-shadow: 0 0 20px #fff;
+        }
+        #inf {
+            position: fixed; top: 10px; right: 14px;
+            color: rgba(255, 255, 255, 0.3);
+            font: 14px Arial, sans-serif; text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="c"></canvas>
+    <div id="fl"></div>
+    <div id="cm">🎉 PERFECT CORNER! 🎉</div>
+    <div id="inf">Corners: <b id="cnt">0</b></div>
+    <script>
+        const c = document.getElementById('c');
+        const ctx = c.getContext('2d', { alpha: false });
+        const fl = document.getElementById('fl');
+        const cm = document.getElementById('cm');
+        const cnt = document.getElementById('cnt');
+        
+        let W, H;
+        
+        // Square bounding box
+        const LOGO_SIZE = 150;
+        const HALF = LOGO_SIZE / 2;
+        const BASE_SPEED = 150; 
+        
+        let x, y;
+        let dirX = 1, dirY = 1; 
+        
+        let cfg = { speed: 1.8 };
+
+        window.addEventListener('message', e => {
+            if (e.data && e.data.cfg) Object.assign(cfg, e.data.cfg);
+        });
+
+        const HUES = [0, 30, 60, 120, 200, 270, 300, 330];
+        let hue = 200, lastHue = -1, corners = 0;
+
+        function resize() {
+            W = c.width = innerWidth;
+            H = c.height = innerHeight;
+        }
+        window.addEventListener('resize', () => { resize(); });
+        resize();
+        x = HALF + 50;
+        y = HALF + 50;
+
+        function nextHue() {
+            let h;
+            do {
+                h = HUES[Math.floor(Math.random() * HUES.length)];
+            } while (h === lastHue);
+            lastHue = hue;
+            hue = h;
+        }
+
+        // Pre-render the DVD logo onto an offscreen canvas so it's a crisp square sprite
+        const logoCanvas = document.createElement('canvas');
+        logoCanvas.width = LOGO_SIZE;
+        logoCanvas.height = LOGO_SIZE;
+
+        function renderLogo(col) {
+            const lx = logoCanvas.getContext('2d');
+            lx.clearRect(0, 0, LOGO_SIZE, LOGO_SIZE);
+
+            const cx = LOGO_SIZE / 2;
+            const cy = LOGO_SIZE / 2;
+
+            // Disc oval
+            lx.beginPath();
+            lx.ellipse(cx, cy - 18, 62, 20, 0, 0, Math.PI * 2);
+            lx.lineWidth = 5;
+            lx.strokeStyle = col;
+            lx.stroke();
+
+            // Inner hole
+            lx.beginPath();
+            lx.ellipse(cx, cy - 18, 12, 4, 0, 0, Math.PI * 2);
+            lx.stroke();
+
+            // "DVD" text
+            lx.font = '900 52px "Arial Black", Impact, sans-serif';
+            lx.textAlign = 'center';
+            lx.textBaseline = 'middle';
+            lx.fillStyle = col;
+            lx.lineWidth = 6;
+            lx.strokeStyle = '#000';
+            lx.strokeText('DVD', cx, cy + 8);
+            lx.fillText('DVD', cx, cy + 8);
+
+            // "video" text
+            lx.font = 'bold 16px Arial, sans-serif';
+            lx.fillText('v i d e o', cx, cy + 38);
+        }
+
+        function flash() {
+            fl.style.opacity = '0.7';
+            setTimeout(() => fl.style.opacity = '0', 50);
+            cm.style.opacity = '1';
+            setTimeout(() => cm.style.opacity = '0', 1500);
+        }
+
+        let lastTime = performance.now();
+        let currentCol = '';
+
+        function frame(now) {
+            const dt = Math.min((now - lastTime) / 1000, 0.05);
+            lastTime = now;
+
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, W, H);
+
+            const col = `hsl(${hue}, 100%, 50%)`;
+            if (col !== currentCol) {
+                renderLogo(col);
+                currentCol = col;
+            }
+
+            // Draw the square logo sprite
+            ctx.drawImage(logoCanvas, x - HALF, y - HALF);
+
+            const spd = BASE_SPEED * (cfg.speed / 1.8);
+            x += dirX * spd * dt;
+            y += dirY * spd * dt;
+
+            let hitX = false, hitY = false;
+            
+            if (x - HALF <= 0) { 
+                x = HALF; dirX = 1; hitX = true; nextHue(); 
+            } else if (x + HALF >= W) { 
+                x = W - HALF; dirX = -1; hitX = true; nextHue(); 
+            }
+            
+            if (y - HALF <= 0) { 
+                y = HALF; dirY = 1; hitY = true; nextHue(); 
+            } else if (y + HALF >= H) { 
+                y = H - HALF; dirY = -1; hitY = true; nextHue(); 
+            }
+
+            if (hitX && hitY) {
+                corners++;
+                cnt.textContent = corners;
+                flash();
+            }
+
+            requestAnimationFrame(frame);
+        }
+        
+        requestAnimationFrame(frame);
+    </script>
+</body>
+</html>

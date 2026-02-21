@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Defrag - Windows 98 Edition</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #c0c0c0;
+            overflow: hidden; 
+            width: 100vw; 
+            height: 100vh; 
+            display: flex;
+            flex-direction: column;
+            font-family: 'Tahoma', 'MS Sans Serif', sans-serif;
+            user-select: none;
+        }
+
+        /* ── Titlebar ── */
+        #titlebar {
+            height: 20px;
+            background: linear-gradient(90deg, #000080, #1084d0);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+            font-size: 11px;
+            font-weight: bold;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .tb-icon { font-size: 14px; line-height: 16px; }
+
+        /* ── Drive selector row ── */
+        #drive-row {
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            flex-shrink: 0;
+            border-bottom: 1px solid #808080;
+        }
+        #drive-row select {
+            height: 21px;
+            font-family: inherit;
+            font-size: 11px;
+            padding: 1px 4px;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            background: #fff;
+            flex: 1;
+            max-width: 280px;
+        }
+
+        /* ── Main grid area ── */
+        #grid-area {
+            flex: 1;
+            min-height: 0;
+            margin: 6px 10px 4px 10px;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            background: #ffffff;
+            overflow: hidden;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        /* ── Bottom section ── */
+        #bottom-section {
+            padding: 3px 10px 5px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        /* ── Legend ── */
+        .legend {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            color: #000;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .lbox {
+            width: 10px;
+            height: 10px;
+            flex-shrink: 0;
+        }
+        .lbox-raised {
+            border-top: 1px solid rgba(255,255,255,0.8);
+            border-left: 1px solid rgba(255,255,255,0.8);
+            border-right: 1px solid rgba(0,0,0,0.5);
+            border-bottom: 1px solid rgba(0,0,0,0.5);
+        }
+        .lbox-sunken {
+            border-top: 1px solid rgba(0,0,0,0.3);
+            border-left: 1px solid rgba(0,0,0,0.3);
+            border-right: 1px solid rgba(255,255,255,0.8);
+            border-bottom: 1px solid rgba(255,255,255,0.8);
+        }
+
+        /* ── Progress bar ── */
+        #progress-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+        }
+        #progress-bar-outer {
+            flex: 1;
+            height: 14px;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            background: #fff;
+        }
+        #progress-bar-inner {
+            height: 100%;
+            background: #000080;
+            width: 0%;
+            transition: width 0.5s linear;
+        }
+        #progress-pct {
+            min-width: 85px;
+            text-align: right;
+        }
+
+        /* ── Status bar ── */
+        #status-bar {
+            display: flex;
+            gap: 2px;
+        }
+        .status-panel {
+            border-top: 1px solid #808080;
+            border-left: 1px solid #808080;
+            border-bottom: 1px solid #ffffff;
+            border-right: 1px solid #ffffff;
+            padding: 2px 6px;
+            font-size: 11px;
+            color: #000;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div id="titlebar">
+        <span class="tb-icon">🗂️</span>
+        <span>Disk Defragmenter</span>
+    </div>
+    <div id="drive-row">
+        <label>Select drive:</label>
+        <select id="drive-sel">
+            <option value="C" selected>Drive C: [WINDOWS98]</option>
+            <option value="D">Drive D: [DATA]</option>
+            <option value="E">Drive E: [BACKUP]</option>
+        </select>
+    </div>
+
+    <div id="grid-area">
+        <canvas id="c"></canvas>
+    </div>
+
+    <div id="bottom-section">
+        <div class="legend">
+            <div class="legend-item"><div class="lbox lbox-raised" style="background:#0000aa;"></div> Optimized</div>
+            <div class="legend-item"><div class="lbox lbox-raised" style="background:#0000aa;"><div style="width:4px;height:4px;background:#fff;margin:auto;"></div></div> Reading</div>
+            <div class="legend-item"><div class="lbox lbox-raised" style="background:#00aa00;"></div> Writing</div>
+            <div class="legend-item"><div class="lbox lbox-raised" style="background:#00aaaa;"></div> Fragmented</div>
+            <div class="legend-item"><div class="lbox lbox-raised" style="background:#aa0000;"></div> Unmovable</div>
+            <div class="legend-item"><div class="lbox lbox-sunken" style="background:#ffffff;"></div> Free space</div>
+            <div class="legend-item"><div class="lbox lbox-raised" style="background:#aa0000;"><span style="color:#fff;font-size:8px;font-weight:bold;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">X</span></div> Bad sector</div>
+        </div>
+
+        <div id="progress-row">
+            <span id="progress-pct">0% Complete</span>
+            <div id="progress-bar-outer">
+                <div id="progress-bar-inner"></div>
+            </div>
+        </div>
+
+        <div id="status-bar">
+            <div class="status-panel" id="panel-status" style="flex-grow: 1;">Defragmenting Drive C:...</div>
+            <div class="status-panel" id="panel-cluster" style="width: 140px; text-align: right;">Cluster: 0</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        ctx.imageSmoothingEnabled = false;
+
+        const elStatus = document.getElementById('panel-status');
+        const elCluster = document.getElementById('panel-cluster');
+        const elPct = document.getElementById('progress-pct');
+        const elBar = document.getElementById('progress-bar-inner');
+        const elDrive = document.getElementById('drive-sel');
+
+        let cfg = { speed: 1.5 };
+        window.addEventListener('message', e => {
+            if (e.data && e.data.cfg) Object.assign(cfg, e.data.cfg);
+        });
+
+        // ── Block types ──
+        const EMPTY = 0, FRAG = 1, OPT = 2, UNMOV = 3, BAD = 4;
+
+        // ── Authentic Win98 Colors ──
+        const COLORS = {
+            [EMPTY]:  '#ffffff',
+            [FRAG]:   '#00aaaa',   // Cyan = fragmented
+            [OPT]:    '#0000aa',   // Dark blue = optimized
+            [UNMOV]:  '#aa0000',   // Dark red = unmovable
+            [BAD]:    '#aa0000',   // Dark red w/ X = bad
+        };
+        const COLOR_READING = '#0000aa';  // Blue with white dot
+        const COLOR_WRITING = '#00aa00';  // Green
+
+        const BLOCK = 8;
+        const GAP = 1;
+        const CELL = BLOCK + GAP;
+
+        let cols, rows, totalCells;
+        let grid = [];
+
+        // ── Visual overlay state (read/write highlights) ──
+        let readHighlight = -1;
+        let writeHighlight = -1;
+
+        // ── Defrag state ──
+        let phase = 'DEFRAG';
+        let scanCursor = 0;
+        let writeCursor = 0;        // Where we write optimized blocks (front of drive)
+        let readCursor = 0;         // Where we're scanning for fragments
+        let globalCluster = 0;
+        let pctComplete = 0;
+        let doneTimer = 0;
+
+        // Throttle: accumulate time, only step when enough has passed
+        let accumulator = 0;
+        // Base interval in ms per single block operation — nice and slow
+        const BASE_INTERVAL = 120;  // ~8 blocks/sec at speed=1
+
+        // ── Resize & Init ──
+        function resize() {
+            const area = document.getElementById('grid-area');
+            const w = area.clientWidth;
+            const h = area.clientHeight;
+            cols = Math.floor(w / CELL);
+            rows = Math.floor(h / CELL);
+            canvas.width = cols * CELL;
+            canvas.height = rows * CELL;
+            totalCells = cols * rows;
+            initDrive();
+        }
+        window.addEventListener('resize', resize);
+
+        function initDrive() {
+            grid = new Array(totalCells);
+
+            // Build a realistic fragmented drive:
+            // - First ~5% : boot/system area (unmovable blocks, some optimized)
+            // - Next ~75% : data area (mix of fragmented, optimized, free gaps)
+            // - Last ~20% : tail (mostly free, scattered fragments)
+            // - A few bad sectors sprinkled throughout
+            const sysEnd = Math.floor(totalCells * 0.05);
+            const dataEnd = Math.floor(totalCells * 0.80);
+
+            for (let i = 0; i < totalCells; i++) {
+                const r = Math.random();
+                if (i < sysEnd) {
+                    // System area
+                    if (r < 0.65) grid[i] = UNMOV;
+                    else if (r < 0.85) grid[i] = OPT;
+                    else grid[i] = FRAG;
+                } else if (i < dataEnd) {
+                    // Data area — heavily fragmented with gaps
+                    if (r < 0.38) grid[i] = FRAG;
+                    else if (r < 0.55) grid[i] = OPT;
+                    else if (r < 0.60) grid[i] = UNMOV;
+                    else grid[i] = EMPTY;
+                } else {
+                    // Tail — mostly free
+                    if (r < 0.10) grid[i] = FRAG;
+                    else if (r < 0.13) grid[i] = OPT;
+                    else grid[i] = EMPTY;
+                }
+            }
+
+            // Sprinkle bad sectors (these never move, just like real defrag)
+            const numBad = Math.max(2, Math.floor(totalCells * 0.003));
+            for (let i = 0; i < numBad; i++) {
+                const idx = sysEnd + Math.floor(Math.random() * (totalCells - sysEnd));
+                if (grid[idx] !== UNMOV) grid[idx] = BAD;
+            }
+
+            // Reset defrag state
+            phase = 'DEFRAG';
+            scanCursor = 0;
+            readCursor = Math.floor(totalCells * 0.05); // Start reading after system area
+            writeCursor = 0;
+            // Find first free slot after system blocks for writing
+            for (let i = 0; i < totalCells; i++) {
+                if (grid[i] === EMPTY) { writeCursor = i; break; }
+            }
+            pctComplete = 0;
+            doneTimer = 0;
+            readHighlight = -1;
+            writeHighlight = -1;
+            accumulator = 0;
+
+            drawFullGrid();
+            updateUI();
+        }
+
+        elDrive.addEventListener('change', () => {
+            elStatus.textContent = `Defragmenting Drive ${elDrive.value}:...`;
+            initDrive();
+        });
+
+        // ── Drawing ──
+        function drawBlock(index) {
+            if (index < 0 || index >= totalCells) return;
+            const col = index % cols;
+            const row = Math.floor(index / cols);
+            const x = col * CELL;
+            const y = row * CELL;
+            const type = grid[index];
+
+            const isReading = (index === readHighlight);
+            const isWriting = (index === writeHighlight);
+
+            if (type === EMPTY && !isReading && !isWriting) {
+                // Sunken white box
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(x, y, BLOCK, BLOCK);
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillRect(x, y, BLOCK, 1);
+                ctx.fillRect(x, y, 1, BLOCK);
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.fillRect(x, y + BLOCK - 1, BLOCK, 1);
+                ctx.fillRect(x + BLOCK - 1, y, 1, BLOCK);
+            } else {
+                // Raised colored box
+                let fillColor;
+                if (isWriting) fillColor = COLOR_WRITING;
+                else if (isReading) fillColor = COLOR_READING;
+                else fillColor = COLORS[type];
+
+                ctx.fillStyle = fillColor;
+                ctx.fillRect(x, y, BLOCK, BLOCK);
+
+                // 3D bevel
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.fillRect(x, y, BLOCK, 1);
+                ctx.fillRect(x, y, 1, BLOCK);
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.fillRect(x, y + BLOCK - 1, BLOCK, 1);
+                ctx.fillRect(x + BLOCK - 1, y, 1, BLOCK);
+
+                // Reading highlight: white center dot
+                if (isReading) {
+                    const dotSize = Math.max(2, BLOCK - 4);
+                    const offset = Math.floor((BLOCK - dotSize) / 2);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(x + offset, y + offset, dotSize, dotSize);
+                }
+
+                // Bad sector: white X
+                if (type === BAD && !isReading && !isWriting) {
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x + 2, y + 2);
+                    ctx.lineTo(x + BLOCK - 2, y + BLOCK - 2);
+                    ctx.moveTo(x + BLOCK - 2, y + 2);
+                    ctx.lineTo(x + 2, y + BLOCK - 2);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function drawFullGrid() {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < totalCells; i++) {
+                drawBlock(i);
+            }
+        }
+
+        function updateUI() {
+            elPct.textContent = `${pctComplete}% Complete`;
+            elBar.style.width = `${pctComplete}%`;
+            elCluster.textContent = `Cluster: ${globalCluster.toLocaleString()}`;
+        }
+
+        // ── Find helpers ──
+        function findNextFrag(from) {
+            for (let i = from; i < totalCells; i++) {
+                if (grid[i] === FRAG) return i;
+            }
+            return -1;
+        }
+
+        function findNextEmpty(from) {
+            for (let i = from; i < totalCells; i++) {
+                if (grid[i] === EMPTY) return i;
+            }
+            return -1;
+        }
+
+        // ── Single step of defrag ──
+        // Each call = one visible block operation (read OR write)
+        // This is intentionally one-at-a-time for that authentic slow feel
+        
+        let stepState = 'FIND_FRAG';  // FIND_FRAG -> READING -> FIND_EMPTY -> WRITING -> FIND_FRAG
+        let currentReadIdx = -1;
+
+        function stepDefrag() {
+            if (phase === 'DONE') {
+                doneTimer++;
+                if (doneTimer > 200) {
+                    // Infinite loop: re-fragment the drive and start over
+                    refragmentDrive();
+                }
+                return;
+            }
+
+            globalCluster += Math.floor(Math.random() * 8) + 1;
+
+            // Clear previous highlights
+            const oldRead = readHighlight;
+            const oldWrite = writeHighlight;
+            readHighlight = -1;
+            writeHighlight = -1;
+            if (oldRead >= 0) drawBlock(oldRead);
+            if (oldWrite >= 0) drawBlock(oldWrite);
+
+            if (stepState === 'FIND_FRAG') {
+                // Scan forward to find the next fragmented block
+                const idx = findNextFrag(readCursor);
+                if (idx === -1) {
+                    // No more fragments — we're done!
+                    phase = 'DONE';
+                    pctComplete = 100;
+                    elStatus.textContent = `Defragmentation of Drive ${elDrive.value}: is complete.`;
+                    updateUI();
+                    return;
+                }
+                currentReadIdx = idx;
+                readCursor = idx + 1;
+                stepState = 'READING';
+
+                // Show the read highlight
+                readHighlight = idx;
+                drawBlock(idx);
+                elStatus.textContent = `Reading cluster ${globalCluster.toLocaleString()}...`;
+
+            } else if (stepState === 'READING') {
+                // "Read" the block: convert it to empty, then find where to write
+                readHighlight = currentReadIdx;
+                drawBlock(currentReadIdx);
+
+                // Small delay effect — next step will do the actual conversion
+                stepState = 'CONVERT_READ';
+
+            } else if (stepState === 'CONVERT_READ') {
+                // Clear the source block
+                grid[currentReadIdx] = EMPTY;
+                drawBlock(currentReadIdx);
+                stepState = 'FIND_EMPTY';
+
+            } else if (stepState === 'FIND_EMPTY') {
+                // Find the earliest free slot to write to
+                let emptyIdx = findNextEmpty(writeCursor);
+                if (emptyIdx === -1) {
+                    // Wrap around — shouldn't happen normally but safety valve
+                    emptyIdx = findNextEmpty(0);
+                }
+                if (emptyIdx === -1) {
+                    // Drive is completely full?? Just skip
+                    stepState = 'FIND_FRAG';
+                    return;
+                }
+
+                // Show write highlight
+                writeHighlight = emptyIdx;
+                grid[emptyIdx] = OPT;
+                drawBlock(emptyIdx);
+                writeCursor = emptyIdx + 1;
+                elStatus.textContent = `Writing cluster ${globalCluster.toLocaleString()}...`;
+                stepState = 'SETTLE_WRITE';
+
+            } else if (stepState === 'SETTLE_WRITE') {
+                // Let the green "writing" block be visible for one tick, then settle
+                writeHighlight = -1;
+                // Redraw as normal optimized block
+                if (writeCursor > 0) drawBlock(writeCursor - 1);
+                stepState = 'FIND_FRAG';
+
+                // Update progress based on remaining fragments
+                const remaining = grid.filter(t => t === FRAG).length;
+                const totalData = grid.filter(t => t === FRAG || t === OPT).length;
+                if (totalData > 0) {
+                    pctComplete = Math.min(99, Math.floor((1 - remaining / totalData) * 100));
+                }
+            }
+
+            updateUI();
+        }
+
+        function refragmentDrive() {
+            // Re-scatter fragments across the optimized blocks to restart
+            const sysEnd = Math.floor(totalCells * 0.05);
+            for (let i = sysEnd; i < totalCells; i++) {
+                if (grid[i] === OPT && Math.random() < 0.35) {
+                    grid[i] = Math.random() < 0.65 ? FRAG : EMPTY;
+                }
+            }
+            // Also scatter a few new fragments into the free tail
+            for (let i = Math.floor(totalCells * 0.8); i < totalCells; i++) {
+                if (grid[i] === EMPTY && Math.random() < 0.06) {
+                    grid[i] = FRAG;
+                }
+            }
+
+            phase = 'DEFRAG';
+            stepState = 'FIND_FRAG';
+            readCursor = sysEnd;
+            writeCursor = 0;
+            for (let i = 0; i < totalCells; i++) {
+                if (grid[i] === EMPTY) { writeCursor = i; break; }
+            }
+            pctComplete = 0;
+            doneTimer = 0;
+            readHighlight = -1;
+            writeHighlight = -1;
+
+            drawFullGrid();
+            updateUI();
+            elStatus.textContent = `Defragmenting Drive ${elDrive.value}:...`;
+        }
+
+        // ── Main animation loop with throttled stepping ──
+        let lastTime = performance.now();
+        resize();
+
+        function animate(now) {
+            const dt = now - lastTime;
+            lastTime = now;
+
+            // Accumulate time, step only when interval has passed
+            const interval = BASE_INTERVAL / cfg.speed;
+            accumulator += dt;
+
+            // Allow at most 1 step per frame for truly visible individual blocks
+            if (accumulator >= interval) {
+                accumulator -= interval;
+                // Clamp so we don't "catch up" with a burst of steps
+                if (accumulator > interval) accumulator = 0;
+                stepDefrag();
+            }
+
+            requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

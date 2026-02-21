@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Maze - Classic 95 Edition</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let cfg = { moveSpeed: 0.014, turnSpeed: 0.045 };
+
+        // Listen for settings from parent
+        window.addEventListener('message', e => {
+            if (e.data && e.data.cfg) Object.assign(cfg, e.data.cfg);
+        });
+
+        const MW = 15, MH = 15;
+
+        function genMaze(w, h) {
+            const g = Array.from({ length: h }, () =>
+                Array.from({ length: w }, () => ({ n: true, s: true, e: true, w: true, v: false }))
+            );
+            const stack = [];
+            const dirs = [[-1, 0, 'w', 'e'], [1, 0, 'e', 'w'], [0, -1, 'n', 's'], [0, 1, 's', 'n']];
+            function shuffle(a) {
+                for (let i = a.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [a[i], a[j]] = [a[j], a[i]];
+                }
+                return a;
+            }
+            let cx = Math.floor(w / 2), cy = Math.floor(h / 2);
+            g[cy][cx].v = true;
+            stack.push([cx, cy]);
+            while (stack.length) {
+                const [x, y] = stack[stack.length - 1];
+                const neighbors = shuffle([...dirs]).filter(([dx, dy]) => {
+                    const nx = x + dx, ny = y + dy;
+                    return nx >= 0 && nx < w && ny >= 0 && ny < h && !g[ny][nx].v;
+                });
+                if (neighbors.length === 0) { stack.pop(); continue; }
+                const [dx, dy, f, t] = neighbors[0];
+                const nx = x + dx, ny = y + dy;
+                g[y][x][f] = false;
+                g[ny][nx][t] = false;
+                g[ny][nx].v = true;
+                stack.push([nx, ny]);
+            }
+            return g;
+        }
+
+        const maze = genMaze(MW, MH);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: false }); 
+        renderer.setSize(innerWidth, innerHeight);
+        renderer.setPixelRatio(1); 
+        document.body.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 100);
+        camera.rotation.order = 'YXZ';
+
+        function createCrunchyTexture(cv) {
+            const t = new THREE.CanvasTexture(cv);
+            t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            t.magFilter = THREE.NearestFilter; 
+            t.minFilter = THREE.NearestFilter;
+            return t;
+        }
+
+        function brickTex() {
+            const cv = document.createElement('canvas');
+            cv.width = 64; cv.height = 64;
+            const cx = cv.getContext('2d');
+            cx.fillStyle = '#b3b3b3'; 
+            cx.fillRect(0, 0, 64, 64);
+            for (let r = 0; r < 4; r++) {
+                const off = r % 2 ? 16 : 0;
+                for (let bx = -16; bx < 64; bx += 32) {
+                    cx.fillStyle = `hsl(0, ${70 + Math.random() * 20}%, ${30 + Math.random() * 15}%)`;
+                    cx.fillRect(bx + off + 1, r * 16 + 1, 30, 14);
+                }
+            }
+            return createCrunchyTexture(cv);
+        }
+
+        function solidTex(color, noise = false) {
+            const cv = document.createElement('canvas');
+            cv.width = cv.height = 64;
+            const cx = cv.getContext('2d');
+            cx.fillStyle = color;
+            cx.fillRect(0, 0, 64, 64);
+            if (noise) {
+                for (let i = 0; i < 400; i++) {
+                    cx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+                    cx.fillRect(Math.random() * 64, Math.random() * 64, 2, 2);
+                }
+            }
+            return createCrunchyTexture(cv);
+        }
+
+        function ratTex() {
+            const cv = document.createElement('canvas');
+            cv.width = 32; cv.height = 32;
+            const cx = cv.getContext('2d');
+            cx.fillStyle = '#654321';
+            cx.fillRect(4, 20, 18, 8); 
+            cx.fillStyle = '#4a2e15';
+            cx.fillRect(22, 22, 6, 4); 
+            cx.fillStyle = '#ffb6c1';
+            cx.fillRect(0, 24, 6, 2);
+            cx.fillRect(28, 23, 2, 2);
+            cx.fillStyle = '#ff0000';
+            cx.fillRect(24, 22, 2, 2); 
+            return createCrunchyTexture(cv);
+        }
+
+        function logoTex() {
+            const cv = document.createElement('canvas');
+            cv.width = 64; cv.height = 64;
+            const cx = cv.getContext('2d');
+            cx.fillStyle = 'transparent';
+            cx.fillRect(0, 0, 64, 64);
+            cx.fillStyle = '#ffffff';
+            cx.font = '16px monospace';
+            cx.fillText("OpenGL", 4, 34);
+            cx.fillStyle = '#0000ff';
+            cx.fillRect(8, 16, 48, 4);
+            cx.fillRect(52, 16, 4, 12);
+            return createCrunchyTexture(cv);
+        }
+
+        const wallTex = brickTex(); wallTex.repeat.set(2, 1);
+        const wallMat = new THREE.MeshLambertMaterial({ map: wallTex });
+
+        const floorTex = solidTex('#4a4a4a', true); floorTex.repeat.set(MW * 4, MH * 4);
+        const floorMat = new THREE.MeshLambertMaterial({ map: floorTex });
+
+        const ceilTex = solidTex('#888888', false); ceilTex.repeat.set(MW * 2, MH * 2);
+        const ceilMat = new THREE.MeshLambertMaterial({ map: ceilTex });
+
+        const wallGeoNS = new THREE.BoxGeometry(2, 2, 0.2);
+        const wallGeoEW = new THREE.BoxGeometry(0.2, 2, 2);
+
+        scene.add(new THREE.Mesh(new THREE.PlaneGeometry(MW * 2, MH * 2), floorMat).translateY(0).rotateX(-Math.PI / 2));
+        const ceil = new THREE.Mesh(new THREE.PlaneGeometry(MW * 2, MH * 2), ceilMat);
+        ceil.rotation.x = Math.PI / 2; ceil.position.y = 2; scene.add(ceil);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const torch = new THREE.PointLight(0xffffff, 0.8, 8);
+        scene.add(torch);
+
+        const ratMaterial = new THREE.SpriteMaterial({ map: ratTex(), color: 0xffffff });
+        const logoMaterial = new THREE.SpriteMaterial({ map: logoTex(), color: 0xffffff });
+
+        for (let y = 0; y < MH; y++) {
+            for (let x = 0; x < MW; x++) {
+                const c = maze[y][x];
+                const wx = (x - MW / 2) * 2, wz = (y - MH / 2) * 2;
+                if (c.n) { const w = new THREE.Mesh(wallGeoNS, wallMat); w.position.set(wx, 1, wz - 1); scene.add(w); }
+                if (c.s) { const w = new THREE.Mesh(wallGeoNS, wallMat); w.position.set(wx, 1, wz + 1); scene.add(w); }
+                if (c.e) { const w = new THREE.Mesh(wallGeoEW, wallMat); w.position.set(wx + 1, 1, wz); scene.add(w); }
+                if (c.w) { const w = new THREE.Mesh(wallGeoEW, wallMat); w.position.set(wx - 1, 1, wz); scene.add(w); }
+
+                if (Math.random() < 0.03) {
+                    const rat = new THREE.Sprite(ratMaterial);
+                    rat.scale.set(0.6, 0.6, 1);
+                    rat.position.set(wx, 0.3, wz);
+                    scene.add(rat);
+                } else if (Math.random() < 0.02) {
+                    const logo = new THREE.Sprite(logoMaterial);
+                    logo.scale.set(1.2, 1.2, 1);
+                    logo.position.set(wx, 1, wz);
+                    scene.add(logo);
+                }
+            }
+        }
+
+        const DIR_KEYS = ['n', 'e', 's', 'w'];
+        const DIR_VEC = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+        const DIR_YAW = [Math.PI, Math.PI / 2, 0, -Math.PI / 2];
+
+        let mx = Math.floor(MW / 2), mz = Math.floor(MH / 2);
+        let curDir = 0; 
+        let currentYaw = DIR_YAW[curDir];
+
+        function cellWorld(cx, cz) { return [(cx - MW / 2) * 2, (cz - MH / 2) * 2]; }
+        function canMove(cx, cz, dir) {
+            if (cx < 0 || cx >= MW || cz < 0 || cz >= MH) return false;
+            return !maze[cz][cx][DIR_KEYS[dir]];
+        }
+
+        let state = 'DECIDING';
+        let moveFrom = cellWorld(mx, mz);
+        let moveTo = moveFrom;
+        let progressT = 0;
+        let startYaw = currentYaw;
+        let targetYaw = currentYaw;
+
+        function pickNextDir() {
+            const left = (curDir + 3) % 4;
+            const fwd = curDir;
+            const right = (curDir + 1) % 4;
+            const back = (curDir + 2) % 4;
+
+            if (canMove(mx, mz, left)) return left;
+            if (canMove(mx, mz, fwd)) return fwd;
+            if (canMove(mx, mz, right)) return right;
+            return back;
+        }
+
+        camera.position.set(moveFrom[0], 0.8, moveFrom[1]);
+        camera.rotation.y = currentYaw;
+
+        let lastTime = performance.now();
+        
+        function animate(now) {
+            const dt = Math.min((now - lastTime) / 1000, 0.05);
+            lastTime = now;
+
+            // Derive durations from speed config (higher speed = shorter duration)
+            const baseMove = 0.014;
+            const baseTurn = 0.045;
+            const moveDuration = baseMove / (cfg.moveSpeed || baseMove) * 0.35;
+            const turnDuration = baseTurn / (cfg.turnSpeed || baseTurn) * 0.25;
+
+            if (state === 'DECIDING') {
+                const nextDir = pickNextDir();
+                
+                if (nextDir !== curDir) {
+                    startYaw = currentYaw;
+                    let diff = nextDir - curDir;
+                    if (diff === 3) diff = -1; 
+                    if (diff === -3) diff = 1; 
+                    
+                    targetYaw = currentYaw - (diff * Math.PI / 2);
+                    curDir = nextDir;
+                    progressT = 0;
+                    state = 'TURNING';
+                } else {
+                    const [dx, dz] = DIR_VEC[curDir];
+                    mx += dx; mz += dz;
+                    moveFrom = [camera.position.x, camera.position.z];
+                    moveTo = cellWorld(mx, mz);
+                    progressT = 0;
+                    state = 'MOVING';
+                }
+            }
+
+            if (state === 'TURNING') {
+                progressT += dt / turnDuration;
+                if (progressT >= 1.0) { progressT = 1.0; state = 'DECIDING'; }
+                const t = 0.5 - Math.cos(progressT * Math.PI) / 2;
+                currentYaw = startYaw + (targetYaw - startYaw) * t;
+                camera.rotation.y = currentYaw;
+            }
+
+            if (state === 'MOVING') {
+                progressT += dt / moveDuration;
+                if (progressT >= 1.0) { progressT = 1.0; state = 'DECIDING'; }
+                camera.position.x = moveFrom[0] + (moveTo[0] - moveFrom[0]) * progressT;
+                camera.position.z = moveFrom[1] + (moveTo[1] - moveFrom[1]) * progressT;
+            }
+
+            torch.position.copy(camera.position);
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+        });
+    </script>
+</body>
+</html>

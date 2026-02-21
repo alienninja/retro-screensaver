@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starfield - Classic 95 Edition</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background: #000; 
+            overflow: hidden; 
+        }
+        canvas { 
+            display: block; 
+            image-rendering: pixelated; 
+        }
+    </style>
+</head>
+<body>
+    <canvas id="c"></canvas>
+    <script>
+        const c = document.getElementById('c');
+        const ctx = c.getContext('2d', { alpha: false });
+        ctx.imageSmoothingEnabled = false;
+
+        let W, H, cx, cy;
+        let cfg = {
+            numStars: 350,
+            speed: 2.5,
+            fov: 300
+        };
+
+        // Listen for settings from parent
+        window.addEventListener('message', e => {
+            if (e.data && e.data.cfg) {
+                const oldCount = cfg.numStars;
+                Object.assign(cfg, e.data.cfg);
+                if (cfg.numStars !== oldCount) init();
+            }
+        });
+
+        const Z_MAX = 1000;
+        let stars = [];
+
+        function resize() {
+            W = c.width = innerWidth;
+            H = c.height = innerHeight;
+            cx = W / 2;
+            cy = H / 2;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function init() {
+            stars = [];
+            for (let i = 0; i < cfg.numStars; i++) {
+                stars.push({
+                    x: (Math.random() - 0.5) * 3000,
+                    y: (Math.random() - 0.5) * 3000,
+                    z: Math.random() * Z_MAX,
+                    pz: Math.random() * Z_MAX
+                });
+            }
+        }
+        init();
+
+        let lastTime = performance.now();
+
+        function frame(now) {
+            const dt = Math.min((now - lastTime) / 1000, 0.05);
+            lastTime = now;
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, W, H);
+
+            const moveAmt = cfg.speed * dt * 300; 
+
+            for (const s of stars) {
+                s.pz = s.z;
+                s.z -= moveAmt;
+
+                if (s.z <= 0) {
+                    s.x = (Math.random() - 0.5) * 3000;
+                    s.y = (Math.random() - 0.5) * 3000;
+                    s.z = Z_MAX;
+                    s.pz = Z_MAX;
+                }
+
+                const sx = (s.x / s.z) * cfg.fov + cx;
+                const sy = (s.y / s.z) * cfg.fov + cy;
+                const px = (s.x / s.pz) * cfg.fov + cx;
+                const py = (s.y / s.pz) * cfg.fov + cy;
+
+                if (sx < 0 || sx > W || sy < 0 || sy > H) {
+                    s.z = 0;
+                    continue;
+                }
+
+                const depthRatio = 1 - (s.z / Z_MAX);
+                const brightness = Math.max(50, Math.floor(depthRatio * 255));
+                const thickness = Math.max(1, Math.floor(depthRatio * 3.5));
+
+                ctx.strokeStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
+                ctx.lineWidth = thickness;
+                
+                ctx.beginPath();
+                ctx.moveTo(px, py);
+                ctx.lineTo(sx === px ? sx + 0.1 : sx, sy === py ? sy + 0.1 : sy);
+                ctx.stroke();
+            }
+            
+            requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+    </script>
+</body>
+</html>

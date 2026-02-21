@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Pipes - Windows 98 Edition</title>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const GRID_LIMIT = 10;
+        const STEP_SIZE = 1.5;
+        const PIPE_RADIUS = 0.45;    
+        const TICK_RATE = 0.05;
+        let MAX_PIPES = 5;         
+        const MAX_OCCUPANCY = 2500;
+
+        let cfg = { numPipes: 5 };
+
+        // Listen for settings from parent
+        window.addEventListener('message', e => {
+            if (e.data && e.data.cfg) {
+                Object.assign(cfg, e.data.cfg);
+                // Adjust pipe count live
+                while (pipes.length < cfg.numPipes) pipes.push(new Pipe());
+                while (pipes.length > cfg.numPipes) pipes.pop();
+            }
+        });
+
+        const COLORS = [0xff0000, 0x00ff00, 0x3366ff, 0xffff00, 0xff00ff, 0x00ffff, 0xffffff];
+        
+        const DIRS = [
+            {x: 1, y: 0, z: 0}, {x: -1, y: 0, z: 0},
+            {x: 0, y: 1, z: 0}, {x: 0, y: -1, z: 0},
+            {x: 0, y: 0, z: 1}, {x: 0, y: 0, z: -1}
+        ];
+
+        const scene = new THREE.Scene();
+        const pipeNetwork = new THREE.Group();
+        scene.add(pipeNetwork);
+
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0x555555)); 
+        const light1 = new THREE.DirectionalLight(0xffffff, 1.0);
+        light1.position.set(1, 1, 1);
+        scene.add(light1);
+        const light2 = new THREE.DirectionalLight(0xaaaaaa, 0.8);
+        light2.position.set(-1, -0.5, -1);
+        scene.add(light2);
+
+        let occupied = new Set();
+        const getKey = (x, y, z) => `${x},${y},${z}`;
+
+        class Pipe {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+                this.mat = new THREE.MeshPhongMaterial({ 
+                    color: this.color, emissive: 0x111111, specular: 0xffffff, shininess: 100 
+                });
+                
+                let attempts = 0;
+                do {
+                    this.gx = Math.floor(Math.random() * (GRID_LIMIT * 2)) - GRID_LIMIT;
+                    this.gy = Math.floor(Math.random() * (GRID_LIMIT * 2)) - GRID_LIMIT;
+                    this.gz = Math.floor(Math.random() * (GRID_LIMIT * 2)) - GRID_LIMIT;
+                    attempts++;
+                } while (occupied.has(getKey(this.gx, this.gy, this.gz)) && attempts < 100);
+
+                this.dir = DIRS[Math.floor(Math.random() * DIRS.length)];
+                this.alive = true;
+                
+                this.drawJoint(this.gx, this.gy, this.gz, true);
+                occupied.add(getKey(this.gx, this.gy, this.gz));
+            }
+
+            drawJoint(gx, gy, gz, isStartOrEnd = false) {
+                let geo = (!isStartOrEnd && Math.random() < 0.005) 
+                    ? new THREE.TorusKnotGeometry(PIPE_RADIUS * 0.8, PIPE_RADIUS * 0.2, 64, 8)
+                    : new THREE.SphereGeometry(PIPE_RADIUS * 1.05, 24, 24);
+                
+                const mesh = new THREE.Mesh(geo, this.mat);
+                mesh.position.set(gx * STEP_SIZE, gy * STEP_SIZE, gz * STEP_SIZE);
+                pipeNetwork.add(mesh);
+            }
+
+            drawStraight(x1, y1, z1, x2, y2, z2, dir) {
+                const start = new THREE.Vector3(x1 * STEP_SIZE, y1 * STEP_SIZE, z1 * STEP_SIZE);
+                const end = new THREE.Vector3(x2 * STEP_SIZE, y2 * STEP_SIZE, z2 * STEP_SIZE);
+                
+                const dist = start.distanceTo(end);
+                const geo = new THREE.CylinderGeometry(PIPE_RADIUS, PIPE_RADIUS, dist, 24);
+                const mesh = new THREE.Mesh(geo, this.mat);
+                
+                mesh.position.copy(start.clone().lerp(end, 0.5));
+                
+                const dirVec = new THREE.Vector3(dir.x, dir.y, dir.z);
+                const up = new THREE.Vector3(0, 1, 0);
+                if (dirVec.y === -1) {
+                    mesh.rotation.x = Math.PI;
+                } else {
+                    mesh.quaternion.setFromUnitVectors(up, dirVec);
+                }
+                
+                pipeNetwork.add(mesh);
+            }
+
+            update() {
+                if (!this.alive) return;
+
+                let validDirs = [];
+                for (let d of DIRS) {
+                    if (d.x === -this.dir.x && d.y === -this.dir.y && d.z === -this.dir.z) continue;
+
+                    let nx = this.gx + d.x;
+                    let ny = this.gy + d.y;
+                    let nz = this.gz + d.z;
+
+                    if (nx < -GRID_LIMIT || nx > GRID_LIMIT || 
+                        ny < -GRID_LIMIT || ny > GRID_LIMIT || 
+                        nz < -GRID_LIMIT || nz > GRID_LIMIT) continue;
+
+                    if (occupied.has(getKey(nx, ny, nz))) continue;
+
+                    validDirs.push(d);
+                }
+
+                if (validDirs.length === 0) {
+                    this.alive = false;
+                    this.drawJoint(this.gx, this.gy, this.gz, true);
+                    this.reset();
+                    return;
+                }
+
+                let canGoStraight = validDirs.some(d => d.x === this.dir.x && d.y === this.dir.y && d.z === this.dir.z);
+                let wantToTurn = Math.random() < 0.35;
+                let nextDir;
+
+                if (wantToTurn || !canGoStraight) {
+                    let turns = validDirs.filter(d => d.x !== this.dir.x || d.y !== this.dir.y || d.z !== this.dir.z);
+                    if (turns.length > 0) {
+                        nextDir = turns[Math.floor(Math.random() * turns.length)];
+                    } else {
+                        nextDir = this.dir;
+                    }
+                } else {
+                    nextDir = this.dir;
+                }
+
+                let nx = this.gx + nextDir.x;
+                let ny = this.gy + nextDir.y;
+                let nz = this.gz + nextDir.z;
+
+                if (nextDir.x !== this.dir.x || nextDir.y !== this.dir.y || nextDir.z !== this.dir.z) {
+                    this.drawJoint(this.gx, this.gy, this.gz);
+                }
+                this.drawStraight(this.gx, this.gy, this.gz, nx, ny, nz, nextDir);
+
+                this.gx = nx;
+                this.gy = ny;
+                this.gz = nz;
+                this.dir = nextDir;
+                occupied.add(getKey(this.gx, this.gy, this.gz));
+            }
+        }
+
+        const pipes = Array.from({ length: MAX_PIPES }, () => new Pipe());
+        const clock = new THREE.Clock();
+        let deltaSum = 0;
+        let camAngle = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            camAngle += 0.0015;
+            camera.position.set(Math.cos(camAngle) * 25, 12, Math.sin(camAngle) * 25);
+            camera.lookAt(0, 0, 0);
+
+            const delta = clock.getDelta();
+            deltaSum += delta;
+
+            if (deltaSum >= TICK_RATE) {
+                pipes.forEach(p => p.update());
+                deltaSum %= TICK_RATE; 
+                
+                if (occupied.size > MAX_OCCUPANCY) {
+                    occupied.clear();
+                    pipeNetwork.clear(); 
+                    pipes.forEach(p => p.reset());
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

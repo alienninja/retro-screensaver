@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Text - Classic Edition</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let cfg = {
+            type: 'text',
+            rotationStyle: 'tumble',
+            texts: ['retro.bithash.cc', 'Windows 98', 'Screensavers!'],
+            speed: 1.5
+        };
+        
+        // Listen for live updates from Display Properties
+        window.addEventListener('message', e => {
+            if (e.data && e.data.cfg) {
+                Object.assign(cfg, e.data.cfg);
+                forceUpdate = true; // Trigger an immediate rebuild when settings change
+            }
+        });
+
+        // ── Renderer & Scene ──
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(innerWidth, innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        document.body.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
+        camera.position.set(0, 0, 35);
+
+        // ── Lighting ──
+        scene.add(new THREE.AmbientLight(0x222233, 0.6));
+        const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        keyLight.position.set(5, 8, 10);
+        scene.add(keyLight);
+        const rimLight = new THREE.DirectionalLight(0x4488ff, 0.8);
+        rimLight.position.set(-8, 3, -5);
+        scene.add(rimLight);
+        const topLight = new THREE.PointLight(0xffffff, 0.5, 50);
+        topLight.position.set(0, 15, 10);
+        scene.add(topLight);
+
+        // ── Environment Map ──
+        function makeEnvMap() {
+            const size = 128;
+            const faces = [];
+            for (let f = 0; f < 6; f++) {
+                const cv = document.createElement('canvas');
+                cv.width = cv.height = size;
+                const cx = cv.getContext('2d');
+                const colors = [
+                    ['#001133', '#0066cc', '#003366'],  
+                    ['#110033', '#6600cc', '#330066'],  
+                    ['#333333', '#ffffff', '#666666'],  
+                    ['#000000', '#111111', '#000000'],  
+                    ['#002244', '#0088ff', '#004488'],  
+                    ['#220011', '#cc0066', '#440022'],  
+                ][f];
+
+                const grad = cx.createLinearGradient(0, 0, size, size);
+                grad.addColorStop(0, colors[0]);
+                grad.addColorStop(0.5, colors[1]);
+                grad.addColorStop(1, colors[2]);
+                cx.fillStyle = grad;
+                cx.fillRect(0, 0, size, size);
+                faces.push(new THREE.CanvasTexture(cv));
+            }
+            const cubeTexture = new THREE.CubeTexture(faces.map(t => t.image));
+            cubeTexture.needsUpdate = true;
+            return cubeTexture;
+        }
+
+        const envMap = makeEnvMap();
+
+        function makeColoredChromeMat(hue) {
+            const color = new THREE.Color().setHSL(hue, 0.6, 0.5);
+            return new THREE.MeshPhongMaterial({
+                color: color, specular: 0xffffff, shininess: 180,
+                envMap: envMap, reflectivity: 0.7, combine: THREE.MixOperation,
+                emissive: new THREE.Color().setHSL(hue, 0.5, 0.08),
+            });
+        }
+
+        // ── Extrusion Builder ──
+        function buildTextMesh(text, material, depth) {
+            const fontSize = 80;
+            const cv = document.createElement('canvas');
+            const cx = cv.getContext('2d');
+            cx.font = `bold ${fontSize}px "Times New Roman", Times, serif`; 
+            
+            const metrics = cx.measureText(text);
+            const width = Math.ceil(metrics.width) + 20;
+            const height = fontSize + 20;
+            cv.width = width;
+            cv.height = height;
+
+            cx.font = `bold ${fontSize}px "Times New Roman", Times, serif`;
+            cx.fillStyle = '#fff';
+            cx.textBaseline = 'middle';
+            cx.fillText(text, 10, height / 2);
+
+            const data = cx.getImageData(0, 0, width, height).data;
+            const BLOCK = 2; 
+            const cols = Math.ceil(width / BLOCK);
+            const rows = Math.ceil(height / BLOCK);
+            const grid = [];
+            let boxCount = 0;
+
+            for (let r = 0; r < rows; r++) {
+                grid[r] = [];
+                for (let c = 0; c < cols; c++) {
+                    let hit = false;
+                    for (let dy = 0; dy < BLOCK && !hit; dy++) {
+                        for (let dx = 0; dx < BLOCK && !hit; dx++) {
+                            const px = c * BLOCK + dx;
+                            const py = r * BLOCK + dy;
+                            if (px < width && py < height && data[(py * width + px) * 4 + 3] > 128) hit = true;
+                        }
+                    }
+                    grid[r][c] = hit;
+                }
+            }
+
+            for (let r = 0; r < rows; r++) {
+                let c = 0;
+                while (c < cols) {
+                    if (!grid[r][c]) { c++; continue; }
+                    while (c < cols && grid[r][c]) c++;
+                    boxCount++;
+                }
+            }
+
+            const scaleX = 0.18;
+            const scaleY = 0.18;
+            const offsetX = -(cols * scaleX) / 2;
+            const offsetY = (rows * scaleY) / 2;
+
+            const geo = new THREE.BoxGeometry(1, 1, depth);
+            const mesh = new THREE.InstancedMesh(geo, material, boxCount);
+            const dummy = new THREE.Object3D();
+
+            let idx = 0;
+            for (let r = 0; r < rows; r++) {
+                let c = 0;
+                while (c < cols) {
+                    if (!grid[r][c]) { c++; continue; }
+                    let runStart = c;
+                    while (c < cols && grid[r][c]) c++;
+                    const bw = (c - runStart) * scaleX;
+                    
+                    dummy.scale.set(bw, scaleY, 1);
+                    dummy.position.set(offsetX + runStart * scaleX + bw / 2, offsetY - r * scaleY - scaleY / 2, 0);
+                    dummy.updateMatrix();
+                    mesh.setMatrixAt(idx++, dummy.matrix);
+                }
+            }
+            mesh.instanceMatrix.needsUpdate = true;
+            return mesh;
+        }
+
+        // ── State Management ──
+        let textGroup = new THREE.Group();
+        scene.add(textGroup);
+        
+        let ti = 0;
+        let lastTimeString = '';
+        let forceUpdate = false;
+        let currentHue = 0.55;
+
+        const HUES = [0.55, 0.08, 0.83, 0.33, 0.15]; 
+        const DEPTH = 3.0;
+
+        function renderString(str, hue) {
+            scene.remove(textGroup);
+            textGroup = new THREE.Group();
+            const mat = makeColoredChromeMat(hue);
+            const mesh = buildTextMesh(str, mat, DEPTH);
+            textGroup.add(mesh);
+            scene.add(textGroup);
+        }
+
+        // ── Main Loop ──
+        let lastTime = performance.now();
+        let elapsed = 0;
+        let textTimer = 0;
+        const TEXT_DURATION = 6.0;
+
+        function animate(now) {
+            const dt = Math.min((now - lastTime) / 1000, 0.05);
+            lastTime = now;
+
+            elapsed += dt * cfg.speed;
+
+            // Display Logic
+            if (cfg.type === 'time') {
+                // CLOCK MODE
+                const d = new Date();
+                let h = d.getHours();
+                const m = String(d.getMinutes()).padStart(2, '0');
+                const s = String(d.getSeconds()).padStart(2, '0');
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12 || 12;
+                
+                const timeStr = `${h}:${m}:${s} ${ampm}`;
+                
+                // Only rebuild geometry when the second changes
+                if (timeStr !== lastTimeString || forceUpdate) {
+                    lastTimeString = timeStr;
+                    // Slowly drift the color over time
+                    currentHue = (d.getTime() / 60000) % 1; 
+                    renderString(timeStr, currentHue);
+                    forceUpdate = false;
+                }
+            } else {
+                // TEXT MODE
+                textTimer += dt;
+                if (textTimer >= TEXT_DURATION || forceUpdate) {
+                    textTimer = 0;
+                    
+                    // Filter out empty lines
+                    const validTexts = cfg.texts.filter(t => t.trim() !== '');
+                    const text = validTexts.length > 0 ? validTexts[ti % validTexts.length] : 'Windows';
+                    
+                    currentHue = HUES[ti % HUES.length];
+                    renderString(text, currentHue);
+                    ti++;
+                    forceUpdate = false;
+                }
+            }
+
+            // --- Authentic Rotation Physics ---
+            const style = cfg.rotationStyle || 'tumble';
+
+            if (style === 'none') {
+                textGroup.rotation.set(0, 0, 0);
+            } 
+            else if (style === 'spin') {
+                textGroup.rotation.y = elapsed * 1.5;
+                textGroup.rotation.x = 0;
+                textGroup.rotation.z = 0;
+            } 
+            else if (style === 'seesaw') {
+                textGroup.rotation.y = 0;
+                textGroup.rotation.x = Math.sin(elapsed * 2.0) * 0.6;
+                textGroup.rotation.z = 0;
+            } 
+            else if (style === 'wobble') {
+                textGroup.rotation.y = Math.sin(elapsed * 1.5) * 0.8;
+                textGroup.rotation.x = Math.sin(elapsed * 1.1) * 0.5;
+                textGroup.rotation.z = Math.cos(elapsed * 0.8) * 0.2;
+            } 
+            else if (style === 'tumble') {
+                textGroup.rotation.y = elapsed * 1.5;
+                textGroup.rotation.x = elapsed * 0.9;
+                textGroup.rotation.z = elapsed * 0.5;
+            }
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+        });
+    </script>
+</body>
+</html>

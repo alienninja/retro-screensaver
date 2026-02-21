@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Rain - The Real Deal</title>
+    <style>
+        body { 
+            margin: 0; 
+            background: #000; 
+            overflow: hidden; 
+        }
+        canvas { 
+            display: block; 
+        }
+    </style>
+</head>
+<body>
+    <canvas id="c"></canvas>
+    <script>
+        const c = document.getElementById('c');
+        const ctx = c.getContext('2d', { alpha: false });
+
+        let W, H, cols;
+        let cfg = {
+            fontSize: 16,
+            speed: 0.35,
+            color: '#00ff41'
+        };
+
+        // Listen for settings from parent
+        window.addEventListener('message', e => {
+            if (e.data && e.data.cfg) {
+                Object.assign(cfg, e.data.cfg);
+                resize(); // re-init columns with new fontSize
+            }
+        });
+
+        const CHARS = 'ｦｧｨｩｪｫｬｭｮｯｰﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789Z:.=+-*#@'.split('');
+        const rc = () => CHARS[Math.floor(Math.random() * CHARS.length)];
+
+        let streams = [];
+        
+        function resize() {
+            W = c.width = innerWidth;
+            H = c.height = innerHeight;
+            const fs = cfg.fontSize || 16;
+            cols = Math.floor(W / fs);
+            
+            const numStreams = Math.floor(cols * 2.5); 
+            streams = [];
+            
+            for (let i = 0; i < numStreams; i++) {
+                streams.push({
+                    col: Math.floor(Math.random() * cols),
+                    y: Math.random() * -H * 2,
+                    speed: Math.random() * 0.6 + 0.2,
+                    lastGridY: -1
+                });
+            }
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function frame() {
+            const fs = cfg.fontSize || 16;
+            const baseSpeed = cfg.speed || 0.35;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+            ctx.fillRect(0, 0, W, H);
+
+            ctx.font = fs + 'px "MS Gothic", monospace';
+            ctx.textAlign = 'center';
+
+            // Trail: overwrite old heads with the configured color
+            ctx.fillStyle = cfg.color || '#00ff41';
+            for (const s of streams) {
+                const gridY = Math.floor(s.y / fs) * fs;
+                if (gridY > s.lastGridY && s.lastGridY >= 0) {
+                    ctx.fillText(rc(), s.col * fs + fs / 2, s.lastGridY);
+                }
+            }
+
+            // Heads: bright white with glow
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = cfg.color || '#00ff41';
+            
+            for (const s of streams) {
+                const gridY = Math.floor(s.y / fs) * fs;
+                
+                if (gridY > s.lastGridY) {
+                    ctx.fillText(rc(), s.col * fs + fs / 2, gridY);
+                    s.lastGridY = gridY;
+                }
+                
+                s.y += s.speed * (fs * 0.8) * (baseSpeed / 0.35);
+                
+                if (s.y > H + fs * 10 && Math.random() > 0.95) {
+                    s.y = Math.random() * -100;
+                    s.col = Math.floor(Math.random() * cols);
+                    s.speed = Math.random() * 0.6 + 0.2;
+                    s.lastGridY = -1;
+                }
+            }
+            
+            ctx.shadowBlur = 0;
+            requestAnimationFrame(frame);
+        }
+        
+        requestAnimationFrame(frame);
+    </script>
+</body>
+</html>

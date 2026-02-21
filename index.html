@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 98 Screensavers — retro.bithash.cc</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="desktop">
+    <div id="icon-grid">
+        <div class="di" ondblclick="launchSS('pipes')">
+            <div class="ic">🟥</div>
+            <span>3D Pipes</span>
+        </div>
+        <div class="di" ondblclick="launchSS('maze')">
+            <div class="ic">🟦</div>
+            <span>3D Maze</span>
+        </div>
+        <div class="di" ondblclick="launchSS('mystify')">
+            <div class="ic">🟣</div>
+            <span>Mystify</span>
+        </div>
+        <div class="di" ondblclick="launchSS('starfield')">
+            <div class="ic">⭐</div>
+            <span>Starfield</span>
+        </div>
+        <div class="di" ondblclick="launchSS('matrix')">
+            <div class="ic">🟩</div>
+            <span>Matrix Rain</span>
+        </div>
+        <div class="di" ondblclick="launchSS('dvd')">
+            <div class="ic">⚪</div>
+            <span>Bouncing DVD</span>
+        </div>
+        <div class="di" ondblclick="launchSS('text3d')">
+            <div class="ic">🔤</div>
+            <span>3D Text</span>
+        </div>
+        <div class="di" ondblclick="launchSS('defrag')">
+            <div class="ic">📀</div>
+            <span>Defrag 98</span>
+        </div>
+        <div class="di" ondblclick="launchSS('defrag-retro')">
+            <div class="ic">🗂️</div>
+            <span>Retro Defrag</span>
+        </div>
+        <div class="di" ondblclick="openDP()">
+            <div class="ic">🖥️</div>
+            <span>Display Props</span>
+        </div>
+        <div class="di" ondblclick="openAbout()">
+            <div class="ic">ℹ️</div>
+            <span>About</span>
+        </div>
+    </div>
+
+    <!-- Display Properties -->
+    <div id="dp" class="dlg hidden" style="top:60px;left:50%;transform:translateX(-50%);width:440px;">
+        <div class="wtb" id="dp-tb">
+            <div class="wtb-l"><span>🖥</span><span>Display Properties</span></div>
+            <div class="wtb-btns"><button onclick="closeDP()">✕</button></div>
+        </div>
+        <div class="dtabs">
+            <div class="dtab active" onclick="switchDPTab('saver')">Screen Saver</div>
+            <div class="dtab" onclick="switchDPTab('settings')">Settings</div>
+            <div class="dtab" onclick="switchDPTab('energy')">Energy Saving</div>
+        </div>
+
+        <!-- Screen Saver tab -->
+        <div id="tab-saver" class="tabpanel active dbody">
+            <div class="mon-wrap">
+                <div class="mon-out">
+                    <div class="mon-scr">
+                        <canvas id="preview-canvas" width="200" height="130"></canvas>
+                    </div>
+                    <div class="mon-base"></div>
+                </div>
+            </div>
+            <div class="drow">
+                <label>Screen saver:</label>
+                <select id="ss-sel" class="sel" onchange="prevChange()">
+                    <option value="">(None)</option>
+                    <option value="pipes">3D Pipes</option>
+                    <option value="maze">3D Maze</option>
+                    <option value="mystify">Mystify Your Mind</option>
+                    <option value="starfield">Starfield</option>
+                    <option value="matrix">Matrix Rain</option>
+                    <option value="dvd">Bouncing DVD</option>
+                    <option value="text3d">3D Text</option>
+                    <option value="defrag">Defrag 98</option>
+                    <option value="defrag-retro">Retro Defrag</option>
+                </select>
+            </div>
+            <div class="drow" style="gap:6px;">
+                <button class="btn" onclick="dpPreview()">Preview</button>
+                <button class="btn" onclick="dpSettings()">Settings...</button>
+            </div>
+            <div class="drow">
+                <label>Wait:</label>
+                <input id="dp-wait" type="number" value="15" min="1" max="999" class="inp" style="width:48px">
+                <span>minutes</span>
+            </div>
+            <div class="chk-row">
+                <input type="checkbox" id="dp-pwd">
+                <label for="dp-pwd">Password protected</label>
+            </div>
+        </div>
+
+        <!-- Settings tab -->
+        <div id="tab-settings" class="tabpanel dbody">
+            <div class="grpbox" style="margin-top:8px;">
+                <div class="grpbox-title">Desktop area</div>
+                <div class="drow">
+                    <label>Resolution:</label>
+                    <select class="sel" id="dp-res">
+                        <option>640 x 480</option>
+                        <option>800 x 600</option>
+                        <option selected>1024 x 768</option>
+                        <option>1280 x 1024</option>
+                        <option>1600 x 1200</option>
+                    </select>
+                </div>
+                <div class="drow">
+                    <label>Colors:</label>
+                    <select class="sel">
+                        <option>16 colors</option>
+                        <option>256 colors</option>
+                        <option selected>High Color (16 bit)</option>
+                        <option>True Color (32 bit)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grpbox">
+                <div class="grpbox-title">Font size</div>
+                <div class="chk-row">
+                    <input type="radio" name="font-sz" checked>
+                    <label>Small fonts</label>
+                </div>
+                <div class="chk-row">
+                    <input type="radio" name="font-sz">
+                    <label>Large fonts</label>
+                </div>
+            </div>
+            <div style="font-size:10px;color:var(--gray);margin-top:8px;">
+                * Changes require restart to take effect
+            </div>
+        </div>
+
+        <!-- Energy tab -->
+        <div id="tab-energy" class="tabpanel dbody">
+            <div class="grpbox" style="margin-top:8px;">
+                <div class="grpbox-title">Power management</div>
+                <div class="chk-row">
+                    <input type="checkbox" id="dp-pm" checked>
+                    <label for="dp-pm">Allow Windows to manage power</label>
+                </div>
+                <div class="drow">
+                    <label>Turn off monitor:</label>
+                    <select class="sel">
+                        <option>Never</option>
+                        <option selected>After 15 mins</option>
+                        <option>After 30 mins</option>
+                        <option>After 1 hour</option>
+                    </select>
+                </div>
+                <div class="drow">
+                    <label>Turn off hard disks:</label>
+                    <select class="sel">
+                        <option>Never</option>
+                        <option>After 15 mins</option>
+                        <option selected>After 30 mins</option>
+                        <option>After 1 hour</option>
+                    </select>
+                </div>
+                <div class="drow">
+                    <label>System standby:</label>
+                    <select class="sel">
+                        <option selected>Never</option>
+                        <option>After 1 hour</option>
+                        <option>After 2 hours</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="dfoot">
+            <button class="btn" onclick="dpOK()">OK</button>
+            <button class="btn" onclick="closeDP()">Cancel</button>
+            <button class="btn" onclick="dpApply()">Apply</button>
+        </div>
+    </div>
+
+    <!-- Settings dialog (spawned from Display Props > Settings button) -->
+    <div id="ss-settings-dlg" class="dlg hidden" style="top:120px;left:calc(50% + 30px);width:300px;">
+        <div class="wtb" id="ssd-tb">
+            <div class="wtb-l"><span>⚙</span><span id="ssd-title">Settings</span></div>
+            <div class="wtb-btns">
+                <button onclick="document.getElementById('ss-settings-dlg').classList.add('hidden')">✕</button>
+            </div>
+        </div>
+        <div class="dbody" id="ssd-body"></div>
+        <div class="dfoot">
+            <button class="btn" onclick="applySettings()">OK</button>
+            <button class="btn" onclick="document.getElementById('ss-settings-dlg').classList.add('hidden')">Cancel</button>
+        </div>
+    </div>
+
+    <!-- About -->
+    <div id="about" class="dlg hidden" style="top:100px;left:50%;transform:translateX(-50%);width:310px;">
+        <div class="wtb" id="about-tb">
+            <div class="wtb-l"><span>ℹ</span><span>About Windows 98 Screensavers</span></div>
+            <div class="wtb-btns">
+                <button onclick="document.getElementById('about').classList.add('hidden')">✕</button>
+            </div>
+        </div>
+        <div class="dbody" style="display:flex;gap:14px;align-items:center;">
+            <div style="font-size:44px;line-height:1">🖥️</div>
+            <div style="font-size:11px;line-height:1.7">
+                <strong>Windows 98 Screensavers</strong><br>
+                <em>retro.bithash.cc</em><br><br>
+                Authentic Win98 remakes<br>
+                HTML5 Canvas &amp; Three.js WebGL<br><br>
+                <small>Double-click icons or use Start menu<br>
+                Multiple screensavers can run at once!<br>
+                ESC closes the active window</small>
+            </div>
+        </div>
+        <div class="dfoot">
+            <button class="btn" onclick="document.getElementById('about').classList.add('hidden')">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- TASKBAR -->
+<div id="taskbar">
+    <button id="start-btn" onclick="toggleStart()">
+        <span style="font-size:16px">⊞</span> <strong>Start</strong>
+    </button>
+    <div class="tbsep"></div>
+    <div id="tbits"></div>
+    <div class="tbtray">
+        <span>🔊</span>
+        <div id="clock">12:00 PM</div>
+    </div>
+</div>
+
+<!-- START MENU -->
+<div id="startmenu" class="hidden">
+    <div class="sm-bar"><span>Windows 98</span></div>
+    <div class="sm-items">
+        <div class="smi" onclick="launchSS('pipes');closeStart()">
+            <span class="smi-ic">🟥</span>
+            <div><strong>3D Pipes</strong><br><small>Growing pipe networks</small></div>
+        </div>
+        <div class="smi" onclick="launchSS('maze');closeStart()">
+            <span class="smi-ic">🟦</span>
+            <div><strong>3D Maze</strong><br><small>First-person maze walk</small></div>
+        </div>
+        <div class="smi" onclick="launchSS('mystify');closeStart()">
+            <span class="smi-ic">🟣</span>
+            <div><strong>Mystify Your Mind</strong><br><small>Hypnotic polygons</small></div>
+        </div>
+        <div class="smi" onclick="launchSS('starfield');closeStart()">
+            <span class="smi-ic">⭐</span>
+            <div><strong>Starfield</strong><br><small>Warp through stars</small></div>
+        </div>
+        <div class="smi" onclick="launchSS('matrix');closeStart()">
+            <span class="smi-ic">🟩</span>
+            <div><strong>Matrix Rain</strong><br><small>Digital katakana rain</small></div>
+        </div>
+        <div class="smi" onclick="launchSS('dvd');closeStart()">
+            <span class="smi-ic">⚪</span>
+            <div><strong>Bouncing DVD</strong><br><small>Will it hit the corner?</small></div>
+        </div>
+        <div class="smi" onclick="launchSS('text3d');closeStart()">
+            <span class="smi-ic">🔤</span>
+            <div><strong>3D Text</strong><br><small>Retro text screensaver</small></div>
+        </div>
+        <div class="smi" onclick="launchSS('defrag');closeStart()">
+            <span class="smi-ic">📀</span>
+            <div><strong>Defrag 98</strong><br><small>Authentic Win98 defrag</small></div>
+        </div>
+        <div class="smi" onclick="launchSS('defrag-retro');closeStart()">
+            <span class="smi-ic">🗂️</span>
+            <div><strong>Retro Defrag</strong><br><small>DOS-era Norton style</small></div>
+        </div>
+        <div class="sm-div"></div>
+        <div class="smi" onclick="openDP();closeStart()">
+            <span class="smi-ic">🖥️</span>
+            <div><strong>Display Properties</strong></div>
+        </div>
+    </div>
+</div>
+
+<script src="js/main.js"></script>
+</body>
+</html>

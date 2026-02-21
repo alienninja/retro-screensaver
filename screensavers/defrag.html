@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disk Defragmenter - Windows 98</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #c0c0c0;
+            overflow: hidden; 
+            width: 100vw; 
+            height: 100vh; 
+            display: flex;
+            flex-direction: column;
+            font-family: 'MS Sans Serif', Tahoma, Arial, sans-serif;
+            user-select: none;
+            font-size: 11px;
+        }
+
+        /* ── Win98 Titlebar ── */
+        .titlebar {
+            height: 18px;
+            background: linear-gradient(90deg, #000080, #1084d0);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2px 0 3px;
+            font-size: 11px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .titlebar-left {
+            display: flex; align-items: center; gap: 3px;
+        }
+        .titlebar-left img { width: 14px; height: 14px; }
+        .tb-icon { font-size: 12px; }
+        .titlebar-btns { display: flex; gap: 1px; }
+        .titlebar-btns button {
+            width: 16px; height: 14px; font-size: 8px; padding: 0;
+            background: #c0c0c0; border: 1px solid;
+            border-color: #fff #808080 #808080 #fff;
+            cursor: pointer; font-family: inherit;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* ── Content area ── */
+        #content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            padding: 8px 8px 6px 8px;
+        }
+
+        /* ── Groupbox ── */
+        .groupbox {
+            border: 1px solid #808080;
+            padding: 10px 8px 8px 8px;
+            position: relative;
+            margin-top: 8px;
+        }
+        .groupbox:first-child { margin-top: 0; }
+        .groupbox-title {
+            position: absolute;
+            top: -7px; left: 8px;
+            background: #c0c0c0;
+            padding: 0 4px;
+            font-size: 11px;
+        }
+
+        /* ── Drive cluster display (the grid) ── */
+        #grid-groupbox {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        #grid-wrap {
+            flex: 1;
+            min-height: 0;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            background: #fff;
+            overflow: hidden;
+            position: relative;
+            margin-top: 2px;
+        }
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        /* ── Legend row ── */
+        #legend-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 6px;
+            font-size: 11px;
+        }
+        .legend-item {
+            display: flex; align-items: center; gap: 4px;
+        }
+        .lswatch {
+            width: 10px; height: 10px; flex-shrink: 0;
+        }
+        .lswatch-raised {
+            border-top: 1px solid rgba(255,255,255,0.7);
+            border-left: 1px solid rgba(255,255,255,0.7);
+            border-right: 1px solid rgba(0,0,0,0.4);
+            border-bottom: 1px solid rgba(0,0,0,0.4);
+        }
+        .lswatch-sunken {
+            border-top: 1px solid rgba(0,0,0,0.25);
+            border-left: 1px solid rgba(0,0,0,0.25);
+            border-right: 1px solid rgba(255,255,255,0.8);
+            border-bottom: 1px solid rgba(255,255,255,0.8);
+        }
+
+        /* ── Progress row ── */
+        #progress-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        #progress-outer {
+            flex: 1;
+            height: 16px;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            background: #fff;
+        }
+        #progress-inner {
+            height: 100%;
+            background: #000080;
+            width: 0%;
+            transition: width 0.4s linear;
+        }
+        #pct-label {
+            min-width: 90px;
+            text-align: left;
+        }
+
+        /* ── Button row ── */
+        #button-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            justify-content: flex-start;
+        }
+        .w98btn {
+            min-width: 75px;
+            height: 23px;
+            padding: 0 12px;
+            font-family: inherit;
+            font-size: 11px;
+            background: #c0c0c0;
+            cursor: pointer;
+            border: 2px solid;
+            border-color: #fff #808080 #808080 #fff;
+        }
+        .w98btn:active {
+            border-color: #808080 #fff #fff #808080;
+        }
+        .w98btn.default {
+            outline: 1px solid #000;
+            outline-offset: -4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="titlebar">
+        <div class="titlebar-left">
+            <span class="tb-icon">📀</span>
+            <span>Defragmenting Drive C</span>
+        </div>
+        <div class="titlebar-btns">
+            <button>_</button>
+            <button>□</button>
+            <button>✕</button>
+        </div>
+    </div>
+
+    <div id="content">
+        <div id="grid-groupbox" class="groupbox">
+            <div class="groupbox-title">Drive C</div>
+            <div id="grid-wrap">
+                <canvas id="c"></canvas>
+            </div>
+            <div id="legend-row">
+                <div class="legend-item"><div class="lswatch lswatch-raised" style="background:#00aaaa;"></div> Not defragmented</div>
+                <div class="legend-item"><div class="lswatch lswatch-raised" style="background:#ffff00;"></div> In progress</div>
+                <div class="legend-item"><div class="lswatch lswatch-raised" style="background:#0000aa;"></div> Defragmented</div>
+                <div class="legend-item"><div class="lswatch lswatch-sunken" style="background:#ffffff;"></div> Free space</div>
+            </div>
+        </div>
+
+        <div id="progress-row">
+            <span id="pct-label">0% completed</span>
+            <div id="progress-outer">
+                <div id="progress-inner"></div>
+            </div>
+        </div>
+
+        <div id="button-row">
+            <button class="w98btn default">Start</button>
+            <button class="w98btn">Stop</button>
+            <button class="w98btn">Pause</button>
+            <button class="w98btn">Show Legend</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        ctx.imageSmoothingEnabled = false;
+
+        const elPct = document.getElementById('pct-label');
+        const elBar = document.getElementById('progress-inner');
+
+        let cfg = { speed: 1.5 };
+        window.addEventListener('message', e => {
+            if (e.data && e.data.cfg) Object.assign(cfg, e.data.cfg);
+        });
+
+        // ── Block types — authentic Win98: just 3 data states ──
+        const EMPTY = 0, UNFRAG = 1, DEFRAG = 2;
+
+        // ── Win98 authentic colors ──
+        const COLOR_EMPTY   = '#ffffff';
+        const COLOR_UNFRAG  = '#00aaaa';   // Cyan = not defragmented
+        const COLOR_DEFRAG  = '#0000aa';   // Dark blue = defragmented
+        const COLOR_INPROG  = '#ffff00';   // Yellow = in progress (being moved)
+
+        const BLOCK = 8;
+        const GAP = 1;
+        const CELL = BLOCK + GAP;
+
+        let cols, rows, totalCells;
+        let grid = [];
+
+        // ── Highlight state ──
+        let highlightIdx = -1;   // The block currently being processed (yellow)
+
+        // ── Defrag state ──
+        let phase = 'DEFRAG';    // DEFRAG or DONE
+        let readCursor = 0;      // Scanning for next cyan block
+        let writeCursor = 0;     // Where to place next blue block
+        let pctComplete = 0;
+        let doneTimer = 0;
+
+        // ── Throttle ──
+        let accumulator = 0;
+        const BASE_INTERVAL = 100;  // ms per step at speed=1
+
+        // ── Step state machine ──
+        // FIND -> HIGHLIGHT_SRC -> CLEAR_SRC -> HIGHLIGHT_DST -> PLACE -> FIND
+        let stepState = 'FIND';
+        let srcIdx = -1;
+
+        // ── Resize & Init ──
+        function resize() {
+            const wrap = document.getElementById('grid-wrap');
+            const w = wrap.clientWidth;
+            const h = wrap.clientHeight;
+            cols = Math.floor(w / CELL);
+            rows = Math.floor(h / CELL);
+            canvas.width = cols * CELL;
+            canvas.height = rows * CELL;
+            totalCells = cols * rows;
+            initDrive();
+        }
+        window.addEventListener('resize', resize);
+
+        function initDrive() {
+            grid = new Array(totalCells);
+
+            // Win98 authentic drive layout:
+            // The drive is a mix of cyan (fragmented) and white (free) blocks.
+            // Some blocks near the front may already be blue (previously defragged).
+            // No unmovable, no bad sectors — that's the simpler Win98 style.
+
+            const frontEnd = Math.floor(totalCells * 0.12);
+            const midEnd = Math.floor(totalCells * 0.78);
+
+            for (let i = 0; i < totalCells; i++) {
+                const r = Math.random();
+                if (i < frontEnd) {
+                    // Front: mostly already defragmented, some gaps, some still cyan
+                    if (r < 0.55) grid[i] = DEFRAG;
+                    else if (r < 0.75) grid[i] = UNFRAG;
+                    else grid[i] = EMPTY;
+                } else if (i < midEnd) {
+                    // Middle: heavily fragmented
+                    if (r < 0.50) grid[i] = UNFRAG;
+                    else if (r < 0.62) grid[i] = DEFRAG;
+                    else grid[i] = EMPTY;
+                } else {
+                    // Tail: mostly free with scattered cyan
+                    if (r < 0.12) grid[i] = UNFRAG;
+                    else if (r < 0.15) grid[i] = DEFRAG;
+                    else grid[i] = EMPTY;
+                }
+            }
+
+            // Reset state
+            phase = 'DEFRAG';
+            stepState = 'FIND';
+            readCursor = 0;
+            writeCursor = 0;
+            pctComplete = 0;
+            doneTimer = 0;
+            highlightIdx = -1;
+            accumulator = 0;
+
+            drawFullGrid();
+            updateUI();
+        }
+
+        // ── Drawing ──
+        function drawBlock(index) {
+            if (index < 0 || index >= totalCells) return;
+            const col = index % cols;
+            const row = Math.floor(index / cols);
+            const x = col * CELL;
+            const y = row * CELL;
+            const type = grid[index];
+            const isHighlight = (index === highlightIdx);
+
+            if (type === EMPTY && !isHighlight) {
+                // Sunken white block
+                ctx.fillStyle = COLOR_EMPTY;
+                ctx.fillRect(x, y, BLOCK, BLOCK);
+                ctx.fillStyle = 'rgba(0,0,0,0.18)';
+                ctx.fillRect(x, y, BLOCK, 1);
+                ctx.fillRect(x, y, 1, BLOCK);
+                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                ctx.fillRect(x, y + BLOCK - 1, BLOCK, 1);
+                ctx.fillRect(x + BLOCK - 1, y, 1, BLOCK);
+            } else {
+                // Raised colored block
+                let fillColor;
+                if (isHighlight) fillColor = COLOR_INPROG;
+                else if (type === UNFRAG) fillColor = COLOR_UNFRAG;
+                else fillColor = COLOR_DEFRAG;
+
+                ctx.fillStyle = fillColor;
+                ctx.fillRect(x, y, BLOCK, BLOCK);
+
+                // 3D bevel
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.fillRect(x, y, BLOCK, 1);
+                ctx.fillRect(x, y, 1, BLOCK);
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.fillRect(x, y + BLOCK - 1, BLOCK, 1);
+                ctx.fillRect(x + BLOCK - 1, y, 1, BLOCK);
+            }
+        }
+
+        function drawFullGrid() {
+            ctx.fillStyle = COLOR_EMPTY;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < totalCells; i++) drawBlock(i);
+        }
+
+        function updateUI() {
+            elPct.textContent = `${pctComplete}% completed`;
+            elBar.style.width = `${pctComplete}%`;
+        }
+
+        // ── Find helpers ──
+        function findNextUnfrag(from) {
+            for (let i = from; i < totalCells; i++) {
+                if (grid[i] === UNFRAG) return i;
+            }
+            return -1;
+        }
+
+        function findNextEmpty(from) {
+            for (let i = from; i < totalCells; i++) {
+                if (grid[i] === EMPTY) return i;
+            }
+            return -1;
+        }
+
+        // ── Defrag step ──
+        function stepDefrag() {
+            if (phase === 'DONE') {
+                doneTimer++;
+                if (doneTimer > 250) refragment();
+                return;
+            }
+
+            // Clear old highlight
+            const oldHL = highlightIdx;
+            highlightIdx = -1;
+            if (oldHL >= 0) drawBlock(oldHL);
+
+            if (stepState === 'FIND') {
+                srcIdx = findNextUnfrag(readCursor);
+                if (srcIdx === -1) {
+                    // Done!
+                    phase = 'DONE';
+                    pctComplete = 100;
+                    updateUI();
+                    return;
+                }
+                readCursor = srcIdx;
+                stepState = 'HIGHLIGHT_SRC';
+
+            } else if (stepState === 'HIGHLIGHT_SRC') {
+                // Flash the source cyan block as yellow
+                highlightIdx = srcIdx;
+                drawBlock(srcIdx);
+                stepState = 'CLEAR_SRC';
+
+            } else if (stepState === 'CLEAR_SRC') {
+                // Source becomes empty
+                grid[srcIdx] = EMPTY;
+                drawBlock(srcIdx);
+                readCursor = srcIdx + 1;
+                stepState = 'FIND_DST';
+
+            } else if (stepState === 'FIND_DST') {
+                // Find earliest free slot
+                let dst = findNextEmpty(writeCursor);
+                if (dst === -1) dst = findNextEmpty(0);
+                if (dst === -1) { stepState = 'FIND'; return; }
+
+                // Flash destination as yellow
+                highlightIdx = dst;
+                grid[dst] = DEFRAG;  // Will be blue, but show yellow briefly
+                drawBlock(dst);
+                writeCursor = dst + 1;
+                stepState = 'SETTLE';
+
+            } else if (stepState === 'SETTLE') {
+                // Yellow -> blue (just redraw without highlight)
+                highlightIdx = -1;
+                if (writeCursor > 0) drawBlock(writeCursor - 1);
+                stepState = 'FIND';
+
+                // Update progress
+                const remaining = grid.filter(t => t === UNFRAG).length;
+                const total = grid.filter(t => t === UNFRAG || t === DEFRAG).length;
+                if (total > 0) {
+                    pctComplete = Math.min(99, Math.floor((1 - remaining / total) * 100));
+                }
+            }
+
+            updateUI();
+        }
+
+        function refragment() {
+            // Scatter fragments back for infinite loop
+            for (let i = 0; i < totalCells; i++) {
+                if (grid[i] === DEFRAG && Math.random() < 0.38) {
+                    grid[i] = Math.random() < 0.6 ? UNFRAG : EMPTY;
+                }
+            }
+            // Add some cyan to the tail
+            for (let i = Math.floor(totalCells * 0.75); i < totalCells; i++) {
+                if (grid[i] === EMPTY && Math.random() < 0.08) grid[i] = UNFRAG;
+            }
+
+            phase = 'DEFRAG';
+            stepState = 'FIND';
+            readCursor = 0;
+            writeCursor = 0;
+            pctComplete = 0;
+            doneTimer = 0;
+            highlightIdx = -1;
+
+            drawFullGrid();
+            updateUI();
+        }
+
+        // ── Main loop ──
+        let lastTime = performance.now();
+        resize();
+
+        function animate(now) {
+            const dt = now - lastTime;
+            lastTime = now;
+
+            const interval = BASE_INTERVAL / cfg.speed;
+            accumulator += dt;
+
+            if (accumulator >= interval) {
+                accumulator -= interval;
+                if (accumulator > interval) accumulator = 0;
+                stepDefrag();
+            }
+
+            requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

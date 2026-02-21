@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystify Your Mind - The Real Deal</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
+        canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+    </style>
+</head>
+<body>
+    <canvas id="c"></canvas>
+    <script>
+        const c = document.getElementById('c');
+        const ctx = c.getContext('2d', { alpha: false });
+        // Disable smoothing for sharp, retro lines
+        ctx.imageSmoothingEnabled = false; 
+        
+        let W, H;
+        let cfg = {
+            sides: 4,
+            speed: 1.5,
+            numPolys: 2,
+            trailLen: 12 // Number of echo lines
+        };
+
+        window.addEventListener('message', e => {
+            if (e.data && e.data.cfg) {
+                Object.assign(cfg, e.data.cfg);
+                init();
+            }
+        });
+
+        function resize() {
+            W = c.width = window.innerWidth;
+            H = c.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        const BASE_SPEED = 200; 
+
+        class Poly {
+            constructor(startHue) {
+                this.hue = startHue;
+                this.history = []; // Will store { pts, hue }
+                this.pts = Array.from({length: cfg.sides}, () => ({
+                    x: Math.random() * W,
+                    y: Math.random() * H,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2
+                }));
+                
+                // Normalize velocities
+                this.pts.forEach(p => {
+                    const mag = Math.sqrt(p.vx * p.vx + p.vy * p.vy) || 1;
+                    p.vx = (p.vx / mag) * (0.6 + Math.random() * 0.4);
+                    p.vy = (p.vy / mag) * (0.6 + Math.random() * 0.4);
+                });
+                
+                this.distSinceLastRecord = 0;
+            }
+
+            update(dt) {
+                const spd = BASE_SPEED * cfg.speed * dt;
+                
+                // 1. Move vertices and bounce
+                this.pts.forEach(p => {
+                    p.x += p.vx * spd;
+                    p.y += p.vy * spd;
+                    if (p.x <= 0) { p.x = 0; p.vx = Math.abs(p.vx); }
+                    if (p.x >= W) { p.x = W; p.vx = -Math.abs(p.vx); }
+                    if (p.y <= 0) { p.y = 0; p.vy = Math.abs(p.vy); }
+                    if (p.y >= H) { p.y = H; p.vy = -Math.abs(p.vy); }
+                });
+
+                // 2. Cycle the color
+                this.hue = (this.hue + (60 * dt)) % 360;
+
+                // 3. Distance-based trailing (ensures even spacing regardless of framerate/speed)
+                this.distSinceLastRecord += spd;
+                if (this.distSinceLastRecord > 15) { // Record a frame every 15 pixels of movement
+                    this.distSinceLastRecord = 0;
+                    
+                    // Add new position and color to the FRONT of the array
+                    this.history.unshift({
+                        pts: this.pts.map(p => ({x: p.x, y: p.y})),
+                        hue: this.hue
+                    });
+
+                    // Prune the tail
+                    if (this.history.length > cfg.trailLen) {
+                        this.history.pop();
+                    }
+                }
+            }
+
+            draw() {
+                // Draw backwards so the newest, brightest line is drawn ON TOP
+                for (let i = this.history.length - 1; i >= 0; i--) {
+                    const snap = this.history[i];
+                    
+                    // Oldest lines are dark, newest line is bright
+                    const intensity = 1 - (i / cfg.trailLen); 
+                    const lightness = 10 + (intensity * 40); // Ranges from 10% to 50% lightness
+                    
+                    ctx.strokeStyle = `hsl(${snap.hue}, 100%, ${lightness}%)`;
+                    ctx.lineWidth = 1.5; 
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(snap.pts[0].x, snap.pts[0].y);
+                    for (let j = 1; j < snap.pts.length; j++) {
+                        ctx.lineTo(snap.pts[j].x, snap.pts[j].y);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+            }
+        }
+
+        let polys = [];
+
+        function init() {
+            polys = [];
+            for (let i = 0; i < cfg.numPolys; i++) {
+                // Stagger starting hues so they don't match
+                polys.push(new Poly(i * (360 / cfg.numPolys)));
+            }
+        }
+        init();
+
+        let lastTime = performance.now();
+        function frame(now) {
+            const dt = Math.min((now - lastTime) / 1000, 0.05);
+            lastTime = now;
+
+            // Authentic Solid Black Clear
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, W, H);
+            
+            polys.forEach(p => {
+                p.update(dt);
+                p.draw();
+            });
+            
+            requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+    </script>
+</body>
+</html>
