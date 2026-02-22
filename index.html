@@ -4,9 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Windows 98 Screensavers — retro.bithash.cc</title>
+
+    <!-- SEO & Open Graph for Reddit/social sharing -->
+    <meta name="description" content="9 authentic Windows 98 screensaver remakes in the browser. 3D Pipes, Maze, Mystify, Starfield, Matrix Rain, DVD Bounce, 3D Text, and two Defrag simulators — all in HTML5 Canvas & WebGL.">
+    <meta property="og:title" content="Windows 98 Screensavers — In Your Browser">
+    <meta property="og:description" content="9 authentic Win98 screensaver remakes. 3D Pipes, Maze, Mystify, Starfield, Matrix Rain, DVD Bounce, 3D Text & Defrag. Pure HTML5 Canvas & WebGL.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://retro.bithash.cc">
+    <meta property="og:image" content="https://retro.bithash.cc/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Windows 98 Screensavers — In Your Browser">
+    <meta name="twitter:description" content="9 authentic Win98 screensaver remakes. 3D Pipes, Maze, Mystify, Starfield, Matrix Rain & more.">
+    <meta name="twitter:image" content="https://retro.bithash.cc/og-image.png">
+    <meta name="theme-color" content="#008080">
+
+    <!-- Favicon: Win98-style monitor emoji as SVG favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
+
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+<noscript>
+    <div style="background:#008080;color:#fff;font-family:Tahoma,Arial,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:20px;">
+        <div>
+            <div style="font-size:48px;margin-bottom:16px;">🖥️</div>
+            <h2 style="margin-bottom:8px;">Windows 98 Screensavers</h2>
+            <p>JavaScript is required to run the screensavers.<br>Please enable JavaScript and refresh the page.</p>
+        </div>
+    </div>
+</noscript>
 
 <div id="desktop">
     <div id="icon-grid">
@@ -231,6 +260,67 @@
             <button class="btn" onclick="document.getElementById('about').classList.add('hidden')">OK</button>
         </div>
     </div>
+
+    <!-- Win98 Error Dialog (reusable) -->
+    <div id="err-dlg" class="dlg hidden" style="top:140px;left:50%;transform:translateX(-50%);width:340px;z-index:9999;">
+        <div class="wtb" id="err-tb">
+            <div class="wtb-l"><span>⚠</span><span id="err-title">Error</span></div>
+            <div class="wtb-btns">
+                <button onclick="document.getElementById('err-dlg').classList.add('hidden')">✕</button>
+            </div>
+        </div>
+        <div class="dbody" style="display:flex;gap:14px;align-items:flex-start;padding:14px;">
+            <div id="err-icon" style="font-size:32px;line-height:1;flex-shrink:0;">⚠️</div>
+            <div id="err-msg" style="font-size:12px;line-height:1.6;"></div>
+        </div>
+        <div class="dfoot">
+            <button class="btn" onclick="document.getElementById('err-dlg').classList.add('hidden')">OK</button>
+        </div>
+    </div>
+
+    <!-- Donate / Tip Jar dialog -->
+    <div id="donate-dlg" class="dlg hidden" style="top:100px;left:50%;transform:translateX(-50%);width:340px;">
+        <div class="wtb" id="donate-tb">
+            <div class="wtb-l"><span>☕</span><span>Donation Processing Center</span></div>
+            <div class="wtb-btns">
+                <button onclick="closeDonate()">✕</button>
+            </div>
+        </div>
+        <div class="dbody" style="text-align:center;padding:16px;" id="donate-body">
+            <!-- Phase 1: Processing -->
+            <div id="donate-phase1">
+                <div id="coffee-cup-wrap">
+                    <div id="coffee-cup">☕</div>
+                    <div id="coffee-spill"></div>
+                </div>
+                <div style="font-size:12px;margin:10px 0 6px;"><strong>Processing your donation...</strong></div>
+                <div id="donate-progress-outer">
+                    <div id="donate-progress-inner"></div>
+                </div>
+                <div id="donate-status" style="font-size:10px;color:var(--gray);margin-top:6px;">Connecting to server...</div>
+            </div>
+            <!-- Phase 2: Receipt -->
+            <div id="donate-phase2" class="hidden">
+                <div style="font-size:11px;text-align:left;font-family:'Courier New',monospace;background:#fff;border:2px solid;border-color:var(--gray) var(--white) var(--white) var(--gray);padding:10px;margin-bottom:10px;line-height:1.8;">
+                    <div style="text-align:center;font-weight:bold;margin-bottom:4px;">═══ RECEIPT ═══</div>
+                    Transaction #00098<br>
+                    Date: <span id="donate-date"></span><br>
+                    ─────────────────────<br>
+                    1x Coffee (virtual) .. $0.00<br>
+                    Tax .................. $0.00<br>
+                    ─────────────────────<br>
+                    <strong>TOTAL ............... $0.00</strong><br><br>
+                    Status: ✅ COMPLETE<br>
+                    ─────────────────────<br>
+                    <div style="font-size:10px;text-align:center;margin-top:4px;">Your generous contribution of<br>absolutely nothing has been received.<br><br>This project remains free &amp; open source.<br>Have a great day!</div>
+                </div>
+            </div>
+        </div>
+        <div class="dfoot">
+            <button class="btn" id="donate-ok-btn" onclick="closeDonate()" disabled>Please wait...</button>
+            <button class="btn" id="donate-print-btn" class="hidden" onclick="fakePrint()" style="display:none;">Print Receipt</button>
+        </div>
+    </div>
 </div>
 
 <!-- TASKBAR -->
@@ -241,6 +331,7 @@
     <div class="tbsep"></div>
     <div id="tbits"></div>
     <div class="tbtray">
+        <span class="tray-icon" onclick="openDonate()" title="Support this project ☕">☕</span>
         <span>🔊</span>
         <div id="clock">12:00 PM</div>
     </div>
@@ -290,6 +381,10 @@
         <div class="smi" onclick="openDP();closeStart()">
             <span class="smi-ic">🖥️</span>
             <div><strong>Display Properties</strong></div>
+        </div>
+        <div class="smi" onclick="openDonate();closeStart()">
+            <span class="smi-ic">☕</span>
+            <div><strong>Buy Me a Coffee</strong><br><small>Support this project</small></div>
         </div>
     </div>
 </div>

@@ -225,6 +225,7 @@
 
         let cfg = { speed: 1.5 };
         window.addEventListener('message', e => {
+            if (e.origin !== location.origin) return;
             if (e.data && e.data.cfg) Object.assign(cfg, e.data.cfg);
         });
 
@@ -253,6 +254,10 @@
         let writeCursor = 0;     // Where to place next blue block
         let pctComplete = 0;
         let doneTimer = 0;
+
+        // ── Counters (avoid O(n) filter every tick) ──
+        let countUnfrag = 0;
+        let countDefrag = 0;
 
         // ── Throttle ──
         let accumulator = 0;
@@ -306,6 +311,14 @@
                     else if (r < 0.15) grid[i] = DEFRAG;
                     else grid[i] = EMPTY;
                 }
+            }
+
+            // Compute initial counters
+            countUnfrag = 0;
+            countDefrag = 0;
+            for (let i = 0; i < totalCells; i++) {
+                if (grid[i] === UNFRAG) countUnfrag++;
+                else if (grid[i] === DEFRAG) countDefrag++;
             }
 
             // Reset state
@@ -422,6 +435,7 @@
             } else if (stepState === 'CLEAR_SRC') {
                 // Source becomes empty
                 grid[srcIdx] = EMPTY;
+                countUnfrag--;
                 drawBlock(srcIdx);
                 readCursor = srcIdx + 1;
                 stepState = 'FIND_DST';
@@ -435,6 +449,7 @@
                 // Flash destination as yellow
                 highlightIdx = dst;
                 grid[dst] = DEFRAG;  // Will be blue, but show yellow briefly
+                countDefrag++;  
                 drawBlock(dst);
                 writeCursor = dst + 1;
                 stepState = 'SETTLE';
@@ -445,11 +460,10 @@
                 if (writeCursor > 0) drawBlock(writeCursor - 1);
                 stepState = 'FIND';
 
-                // Update progress
-                const remaining = grid.filter(t => t === UNFRAG).length;
-                const total = grid.filter(t => t === UNFRAG || t === DEFRAG).length;
-                if (total > 0) {
-                    pctComplete = Math.min(99, Math.floor((1 - remaining / total) * 100));
+                // Update progress using counters (O(1) instead of O(n))
+                const totalData = countUnfrag + countDefrag;
+                if (totalData > 0) {
+                    pctComplete = Math.min(99, Math.floor((1 - countUnfrag / totalData) * 100));
                 }
             }
 

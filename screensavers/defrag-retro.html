@@ -209,6 +209,7 @@
 
         let cfg = { speed: 1.5 };
         window.addEventListener('message', e => {
+            if (e.origin !== location.origin) return;
             if (e.data && e.data.cfg) Object.assign(cfg, e.data.cfg);
         });
 
@@ -236,6 +237,10 @@
         // ── Visual overlay state (read/write highlights) ──
         let readHighlight = -1;
         let writeHighlight = -1;
+
+        // ── Counters (avoid O(n) filter every tick) ──
+        let countFrag = 0;
+        let countOpt = 0;
 
         // ── Defrag state ──
         let phase = 'DEFRAG';
@@ -302,6 +307,14 @@
             for (let i = 0; i < numBad; i++) {
                 const idx = sysEnd + Math.floor(Math.random() * (totalCells - sysEnd));
                 if (grid[idx] !== UNMOV) grid[idx] = BAD;
+            }
+
+            // Compute initial counters
+            countFrag = 0;
+            countOpt = 0;
+            for (let i = 0; i < totalCells; i++) {
+                if (grid[i] === FRAG) countFrag++;
+                else if (grid[i] === OPT) countOpt++;
             }
 
             // Reset defrag state
@@ -477,6 +490,7 @@
             } else if (stepState === 'CONVERT_READ') {
                 // Clear the source block
                 grid[currentReadIdx] = EMPTY;
+                countFrag--;
                 drawBlock(currentReadIdx);
                 stepState = 'FIND_EMPTY';
 
@@ -496,6 +510,7 @@
                 // Show write highlight
                 writeHighlight = emptyIdx;
                 grid[emptyIdx] = OPT;
+                countOpt++;
                 drawBlock(emptyIdx);
                 writeCursor = emptyIdx + 1;
                 elStatus.textContent = `Writing cluster ${globalCluster.toLocaleString()}...`;
@@ -508,11 +523,10 @@
                 if (writeCursor > 0) drawBlock(writeCursor - 1);
                 stepState = 'FIND_FRAG';
 
-                // Update progress based on remaining fragments
-                const remaining = grid.filter(t => t === FRAG).length;
-                const totalData = grid.filter(t => t === FRAG || t === OPT).length;
+                // Update progress using counters (O(1) instead of O(n))
+                const totalData = countFrag + countOpt;
                 if (totalData > 0) {
-                    pctComplete = Math.min(99, Math.floor((1 - remaining / totalData) * 100));
+                    pctComplete = Math.min(99, Math.floor((1 - countFrag / totalData) * 100));
                 }
             }
 

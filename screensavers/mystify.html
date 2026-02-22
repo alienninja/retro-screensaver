@@ -27,6 +27,7 @@
         };
 
         window.addEventListener('message', e => {
+            if (e.origin !== location.origin) return;
             if (e.data && e.data.cfg) {
                 Object.assign(cfg, e.data.cfg);
                 init();

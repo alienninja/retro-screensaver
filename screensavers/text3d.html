@@ -10,7 +10,7 @@
     </style>
 </head>
 <body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb" crossorigin="anonymous"></script>
     <script>
         let cfg = {
             type: 'text',
@@ -21,6 +21,7 @@
         
         // Listen for live updates from Display Properties
         window.addEventListener('message', e => {
+            if (e.origin !== location.origin) return;
             if (e.data && e.data.cfg) {
                 Object.assign(cfg, e.data.cfg);
                 forceUpdate = true; // Trigger an immediate rebuild when settings change
@@ -183,6 +184,13 @@
         const DEPTH = 3.0;
 
         function renderString(str, hue) {
+            // Dispose old geometry/material to prevent memory leaks
+            textGroup.traverse(child => {
+                if (child.isInstancedMesh || child.isMesh) {
+                    child.geometry.dispose();
+                    if (child.material) child.material.dispose();
+                }
+            });
             scene.remove(textGroup);
             textGroup = new THREE.Group();
             const mat = makeColoredChromeMat(hue);

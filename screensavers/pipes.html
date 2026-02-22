@@ -9,7 +9,7 @@
     </style>
 </head>
 <body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb" crossorigin="anonymous"></script>
     <script>
         const GRID_LIMIT = 10;
         const STEP_SIZE = 1.5;
@@ -22,6 +22,7 @@
 
         // Listen for settings from parent
         window.addEventListener('message', e => {
+            if (e.origin !== location.origin) return;
             if (e.data && e.data.cfg) {
                 Object.assign(cfg, e.data.cfg);
                 // Adjust pipe count live
@@ -196,6 +197,13 @@
                 
                 if (occupied.size > MAX_OCCUPANCY) {
                     occupied.clear();
+                    // Dispose geometries and materials before clearing
+                    pipeNetwork.traverse(child => {
+                        if (child.isMesh) {
+                            child.geometry.dispose();
+                            // Don't dispose shared materials
+                        }
+                    });
                     pipeNetwork.clear(); 
                     pipes.forEach(p => p.reset());
                 }

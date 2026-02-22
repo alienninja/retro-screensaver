@@ -31,6 +31,9 @@ const SS_CFG = {
     'defrag-retro': { speed: 1.5 }
 };
 
+// Track last-selected screensaver in Display Properties
+let dpSelectedSS = '';
+
 // ── Clock ─────────────────────────────────────────────────
 function tick() {
     const n = new Date();
@@ -47,8 +50,13 @@ tick();
 let windows = {};
 let nextZ = 100;
 let nextWinId = 0;
+const MAX_WINDOWS = 12;
 
 function launchSS(ssKey) {
+    if (Object.keys(windows).length >= MAX_WINDOWS) {
+        showError('System Resources', 'Too many windows open.<br><br>Please close some windows before opening new ones.', '⚠️');
+        return;
+    }
     const id = 'win-' + (nextWinId++);
     const meta = SS_META[ssKey];
     if (!meta) return;
@@ -90,10 +98,10 @@ function launchSS(ssKey) {
     makeResizable(win);
     bringToFront(win);
 
-    windows[id] = { el: win, ssKey, id, iframeEl: null, maxed: false };
+    windows[id] = { el: win, ssKey, id, iframeEl: null, maxed: false, clockInterval: null };
     loadSSIntoWindow(id, ssKey);
     addTBItem(id, meta);
-    setInterval(() => {
+    windows[id].clockInterval = setInterval(() => {
         const e = document.getElementById('clk-' + id);
         if (e) e.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
     }, 1000);
@@ -108,6 +116,7 @@ function loadSSIntoWindow(id, ssKey) {
     
     const iframe = document.createElement('iframe');
     iframe.style.cssText = 'width:100%;height:100%;border:none;display:block;';
+    iframe.sandbox = 'allow-scripts allow-same-origin';
     iframe.src = `screensavers/${ssKey}.html`;
     
     iframe.onload = () => {
@@ -145,6 +154,7 @@ function cycleWin(id, dir) {
 function closeWin(id) {
     const w = windows[id];
     if (!w) return;
+    if (w.clockInterval) clearInterval(w.clockInterval);
     w.el.remove();
     const tbi = document.getElementById('tbi-' + id);
     if (tbi) tbi.remove();
@@ -277,14 +287,17 @@ function closeStart() {
 }
 
 // ── Display Properties ───────────────────────────────────
-let dpOpen = false, prevAnimId = null;
+let prevAnimId = null;
 
 function openDP() {
     closeAllMenus();
-    document.getElementById('dp').classList.remove('hidden');
-    bringToFront(document.getElementById('dp'));
-    const sel = document.getElementById('ss-sel').value;
-    if (sel) startPreview(sel);
+    const dp = document.getElementById('dp');
+    dp.classList.remove('hidden');
+    bringToFront(dp);
+    // Restore last-selected screensaver
+    const sel = document.getElementById('ss-sel');
+    sel.value = dpSelectedSS;
+    if (dpSelectedSS) startPreview(dpSelectedSS);
 }
 
 function closeDP() {
@@ -294,6 +307,7 @@ function closeDP() {
 
 function prevChange() {
     const v = document.getElementById('ss-sel').value;
+    dpSelectedSS = v;
     stopPreview();
     if (v) startPreview(v);
 }
@@ -307,15 +321,27 @@ function switchDPTab(name) {
     document.getElementById('tab-' + name)?.classList.add('active');
 }
 
+// FIX: dpPreview launches a new window (Preview button = "show me fullscreen")
 function dpPreview() {
     const v = document.getElementById('ss-sel').value;
     if (v) launchSS(v);
     closeDP();
 }
 
+// FIX: dpApply now pushes settings to existing windows instead of spawning new ones
 function dpApply() {
     const v = document.getElementById('ss-sel').value;
-    if (v) launchSS(v);
+    dpSelectedSS = v;
+    // Push current config to any running windows of this screensaver type
+    if (v) {
+        Object.values(windows).forEach(w => {
+            if (w.ssKey === v && w.iframeEl) {
+                try {
+                    w.iframeEl.contentWindow.postMessage({ cfg: SS_CFG[v] }, '*');
+                } catch (e) {}
+            }
+        });
+    }
 }
 
 function dpOK() {
@@ -357,7 +383,8 @@ const SS_SETTINGS_UI = {
             <div class="drow"><label>Text line 2:</label><input class="inp" id="cfg-t1" type="text" value="Windows 98" style="width:160px"></div>
             <div class="drow"><label>Text line 3:</label><input class="inp" id="cfg-t2" type="text" value="Screensavers!" style="width:160px"></div>`,
     defrag: '<div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.5" max="5.0" step="0.5" value="1.5" style="width:120px"><span id="cfg-speed-val">1.5</span></div>',
-    'defrag-retro': '<div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.5" max="5.0" step="0.5" value="1.5" style="width:120px"><span id="cfg-speed-val">1.5</span></div>'};
+    'defrag-retro': '<div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.5" max="5.0" step="0.5" value="1.5" style="width:120px"><span id="cfg-speed-val">1.5</span></div>'
+};
 
 function dpSettings() {
     const ssKey = document.getElementById('ss-sel').value;
@@ -370,13 +397,34 @@ function dpSettings() {
     document.getElementById('ssd-title').textContent = SS_META[ssKey]?.title + ' Settings';
     document.getElementById('ssd-body').innerHTML = ui;
     
+    // FIX: Populate current values from SS_CFG so settings persist
+    const currentCfg = SS_CFG[ssKey];
+    document.querySelectorAll('#ssd-body [id^="cfg-"]').forEach(el => {
+        const key = el.id.replace('cfg-', '');
+        const m = key.match(/^t(\d)$/);
+        if (m) {
+            // Text fields for text3d
+            if (currentCfg.texts && currentCfg.texts[parseInt(m[1])] !== undefined) {
+                el.value = currentCfg.texts[parseInt(m[1])];
+            }
+        } else if (currentCfg[key] !== undefined) {
+            el.value = currentCfg[key];
+        }
+        // Update range value display labels
+        if (el.type === 'range') {
+            const sp = document.getElementById(el.id + '-val');
+            if (sp) sp.textContent = el.value;
+        }
+    });
+
+    // Wire up live range value labels
     document.querySelectorAll('#ssd-body input[type=range]').forEach(r => {
         const sp = document.getElementById(r.id + '-val');
         if (sp) {
-            sp.textContent = r.value;
             r.addEventListener('input', () => sp.textContent = r.value);
         }
     });
+
     document.getElementById('ss-settings-dlg').classList.remove('hidden');
     bringToFront(document.getElementById('ss-settings-dlg'));
     document.getElementById('ssd-body').dataset.sskey = ssKey;
@@ -412,6 +460,14 @@ function applySettings() {
     document.getElementById('ss-settings-dlg').classList.add('hidden');
 }
 
+// ── Password Protected checkbox (fun easter egg) ─────────
+document.getElementById('dp-pwd').addEventListener('change', function() {
+    if (this.checked) {
+        showError('Screen Saver Password', 'This is a website. Your screen isn\'t actually locked.<br><br>Nice try though! 😎', '🔒');
+        this.checked = false;
+    }
+});
+
 // ── About ───────────────────────────────────────────────
 function openAbout() {
     closeAllMenus();
@@ -420,11 +476,128 @@ function openAbout() {
     bringToFront(a);
 }
 
+// ── Donate dialog (fake donation gag) ─────────────────────────
+let donateTimeout = null;
+
+function openDonate() {
+    const d = document.getElementById('donate-dlg');
+    d.classList.remove('hidden');
+    bringToFront(d);
+
+    // Reset state
+    document.getElementById('donate-phase1').classList.remove('hidden');
+    document.getElementById('donate-phase2').classList.add('hidden');
+    document.getElementById('donate-ok-btn').disabled = true;
+    document.getElementById('donate-ok-btn').textContent = 'Please wait...';
+    document.getElementById('donate-print-btn').style.display = 'none';
+    document.getElementById('donate-progress-inner').style.width = '0%';
+    document.getElementById('donate-status').textContent = 'Connecting to server...';
+    document.getElementById('coffee-cup').classList.remove('spilling');
+    document.getElementById('coffee-spill').classList.remove('active');
+
+    // Run the fake progress sequence
+    const bar = document.getElementById('donate-progress-inner');
+    const status = document.getElementById('donate-status');
+
+    const steps = [
+        [300,  () => { bar.style.width = '8%';  status.textContent = 'Connecting to server...'; }],
+        [800,  () => { bar.style.width = '15%'; status.textContent = 'Establishing secure connection...'; }],
+        [1400, () => { bar.style.width = '30%'; status.textContent = 'Verifying donation amount ($0.00)...'; }],
+        [2000, () => { bar.style.width = '45%'; status.textContent = 'Contacting your bank...'; }],
+        [2600, () => { bar.style.width = '58%'; status.textContent = 'Bank approved $0.00 transaction.'; }],
+        [3100, () => { bar.style.width = '72%'; status.textContent = 'Brewing virtual coffee...'; }],
+        [3600, () => { bar.style.width = '85%'; status.textContent = 'Pouring...'; }],
+        [4000, () => {
+            bar.style.width = '95%';
+            status.textContent = 'Delivering to developer...';
+            // Spill the coffee!
+            document.getElementById('coffee-cup').classList.add('spilling');
+            document.getElementById('coffee-spill').classList.add('active');
+        }],
+        [4800, () => {
+            bar.style.width = '100%';
+            status.textContent = 'Oops. Transaction complete.';
+        }],
+        [5500, () => {
+            // Switch to receipt phase
+            document.getElementById('donate-phase1').classList.add('hidden');
+            document.getElementById('donate-phase2').classList.remove('hidden');
+            document.getElementById('donate-ok-btn').disabled = false;
+            document.getElementById('donate-ok-btn').textContent = 'OK';
+            document.getElementById('donate-print-btn').style.display = '';
+            // Set date
+            const now = new Date();
+            document.getElementById('donate-date').textContent = 
+                now.toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' }) + 
+                ' ' + now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' });
+        }]
+    ];
+
+    // Clear any existing timeouts
+    if (donateTimeout) donateTimeout.forEach(t => clearTimeout(t));
+    donateTimeout = steps.map(([delay, fn]) => setTimeout(fn, delay));
+}
+
+function closeDonate() {
+    document.getElementById('donate-dlg').classList.add('hidden');
+    if (donateTimeout) {
+        donateTimeout.forEach(t => clearTimeout(t));
+        donateTimeout = null;
+    }
+}
+
+function fakePrint() {
+    showError('Printer Error', 'Error printing receipt:<br><br><b>lpt1:</b> device timed out.<br><br>The printer is not responding. Check that the cable is connected and the printer is turned on, then try again.', '🖨️');
+}
+
+// Reusable Win98-style error/info dialog
+function showError(title, msg, icon) {
+    const dlg = document.getElementById('err-dlg');
+    document.getElementById('err-title').textContent = title || 'Error';
+    document.getElementById('err-msg').innerHTML = msg || '';
+    document.getElementById('err-icon').textContent = icon || '⚠️';
+    dlg.classList.remove('hidden');
+    bringToFront(dlg);
+}
+
 // ── Make dialogs draggable ───────────────────────────────
-['dp-tb', 'about-tb', 'ssd-tb'].forEach(tbId => {
+['dp-tb', 'about-tb', 'ssd-tb', 'err-tb'].forEach(tbId => {
     const tb = document.getElementById(tbId);
     if (tb) makeDraggable(tb.parentElement, tb);
 });
+
+// Donate dialog draggable (deferred until DOM ready)
+requestAnimationFrame(() => {
+    const dtb = document.getElementById('donate-tb');
+    if (dtb) makeDraggable(dtb.parentElement, dtb);
+});
+
+// ── Mobile: single-tap to launch (desktop icons) ─────────
+(function setupMobileSupport() {
+    // Detect touch device
+    if (!('ontouchstart' in window)) return;
+    
+    document.querySelectorAll('.di').forEach(icon => {
+        let tapTimer = null;
+        let tapped = false;
+        
+        icon.addEventListener('click', function(e) {
+            // On touch devices, convert single click to the ondblclick action
+            if (tapped) {
+                // Second tap — already handled by dblclick or first tap timer
+                tapped = false;
+                clearTimeout(tapTimer);
+                return;
+            }
+            tapped = true;
+            tapTimer = setTimeout(() => {
+                // Single tap on mobile — fire the dblclick handler
+                if (icon.ondblclick) icon.ondblclick();
+                tapped = false;
+            }, 250);
+        });
+    });
+})();
 
 // ── Preview canvas animations ─────────────────────────────
 function stopPreview() {
@@ -493,7 +666,6 @@ function prevMystify(ctx, c) {
 }
 
 function prevDefrag98(ctx, c) {
-    // Win98 authentic: just cyan, blue, white
     const BS = 5, GAP2 = 1, CS = BS + GAP2;
     const dcols = Math.floor(c.width / CS);
     const drows = Math.floor(c.height / CS);
@@ -574,7 +746,6 @@ function prevDefrag(ctx, c) {
     function frame() {
         for (let s = 0; s < 4; s++) {
             if (cursor >= total) {
-                // Reset: re-fragment
                 for (let i = Math.floor(total * 0.04); i < total; i++) {
                     if (grid[i] === OPT && Math.random() < 0.4) grid[i] = Math.random() < 0.7 ? FRAG : EMPTY;
                 }
@@ -668,23 +839,20 @@ function prevDVD(ctx, c) {
         
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(0.25, 0.25); // Scale the big logo down for the mini-monitor
+        ctx.scale(0.25, 0.25);
         
         const col = `hsl(${hue}, 100%, 50%)`;
 
-        // The Oval
         ctx.beginPath();
         ctx.ellipse(0, -15, 80, 25, 0, 0, Math.PI * 2);
         ctx.lineWidth = 6;
         ctx.strokeStyle = col;
         ctx.stroke();
 
-        // Inner hole
         ctx.beginPath();
         ctx.ellipse(0, -15, 15, 5, 0, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Text
         ctx.font = '900 65px "Arial Black", Impact, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -702,7 +870,6 @@ function prevDVD(ctx, c) {
         x += vx;
         y += vy;
         
-        // Mini-monitor collision detection
         if (x <= 25 || x >= c.width - 25) { 
             vx *= -1; 
             hue = (hue + 47) % 360; 
@@ -762,15 +929,26 @@ function prevMaze(ctx, c) {
         return a;
     }
     
-    function carve(x, y) {
-        g[y][x].v = true;
-        for (const [dx, dy, f, t] of sh([[-1, 0, 'w', 'e'], [1, 0, 'e', 'w'], [0, -1, 'n', 's'], [0, 1, 's', 'n']])) {
-            const nx = x + dx, ny = y + dy;
-            if (nx >= 0 && nx < COLS2 && ny >= 0 && ny < ROWS && !g[ny][nx].v) {
-                g[y][x][f] = false;
-                g[ny][nx][t] = false;
-                carve(nx, ny);
+    // Iterative maze carving (avoids stack overflow on larger grids)
+    function carve(startX, startY) {
+        const stack = [[startX, startY]];
+        g[startY][startX].v = true;
+        while (stack.length > 0) {
+            const [x, y] = stack[stack.length - 1];
+            const neighbors = sh([[-1, 0, 'w', 'e'], [1, 0, 'e', 'w'], [0, -1, 'n', 's'], [0, 1, 's', 'n']]).filter(([dx, dy]) => {
+                const nx = x + dx, ny = y + dy;
+                return nx >= 0 && nx < COLS2 && ny >= 0 && ny < ROWS && !g[ny][nx].v;
+            });
+            if (neighbors.length === 0) {
+                stack.pop();
+                continue;
             }
+            const [dx, dy, f, t] = neighbors[0];
+            const nx = x + dx, ny = y + dy;
+            g[y][x][f] = false;
+            g[ny][nx][t] = false;
+            g[ny][nx].v = true;
+            stack.push([nx, ny]);
         }
     }
     carve(0, 0);
@@ -784,7 +962,7 @@ function prevMaze(ctx, c) {
             const nx = wx + WD[d][0], ny = wy + WD[d][1];
             if (nx >= 0 && nx < COLS2 && ny >= 0 && ny < ROWS && !g[wy][wx][WK2[d]]) return d;
         }
-        return b;
+        return wdir; // Stay put if truly stuck (shouldn't happen in valid maze)
     }
     
     function draw() {
