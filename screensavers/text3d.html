@@ -21,7 +21,7 @@
         
         // Listen for live updates from Display Properties
         window.addEventListener('message', e => {
-            if (e.origin !== location.origin) return;
+            if (e.origin !== 'null' && e.origin !== location.origin) return;
             if (e.data && e.data.cfg) {
                 Object.assign(cfg, e.data.cfg);
                 forceUpdate = true; // Trigger an immediate rebuild when settings change

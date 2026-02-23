@@ -25,19 +25,31 @@
         let cfg = {
             fontSize: 16,
             speed: 0.35,
-            color: '#00ff41'
+            color: '#00ff41',
+            density: 1.0
         };
 
         window.addEventListener('message', e => {
-            if (e.origin !== location.origin) return;
+            // Accept messages from same origin or parent frame
+            // On file:// both origins are 'null' (string); on https they match normally
+            const validOrigin = !e.origin || e.origin === 'null' || e.origin === location.origin;
+            if (!validOrigin) return;
             if (e.data && e.data.cfg) {
+                const prev = { fontSize: cfg.fontSize, density: cfg.density };
                 Object.assign(cfg, e.data.cfg);
-                init();
+                // Ensure numeric types for values that come from select elements as strings
+                cfg.fontSize = parseInt(cfg.fontSize) || 16;
+                cfg.speed = parseFloat(cfg.speed) || 0.35;
+                cfg.density = parseFloat(cfg.density) || 1.0;
+                // Only reinit grid if fontSize or density changed (expensive)
+                if (cfg.fontSize !== prev.fontSize || cfg.density !== prev.density) {
+                    init();
+                }
+                // Speed and color take effect immediately (no reinit needed)
             }
         });
 
         // ── Authentic character set ──
-        // Half-width katakana (displayed mirrored in the film) + digits + symbols
         const CHARS = 'ﾊﾋｼﾂｳｰﾅﾐﾓﾆｻﾜｵﾘﾎﾏｴｷﾑﾃｹﾒｶﾕﾗｾﾈｽﾀﾇ0123456789Z:.*+"=<>|¦_'.split('');
         const rc = () => CHARS[(Math.random() * CHARS.length) | 0];
 
@@ -51,11 +63,10 @@
         }
 
         // ── Grid model ──
-        // Glyphs are STATIONARY in the grid. "Rain" is a wave of illumination.
-        let grid = [];        // grid[row][col] = { char, brightness, highlighted, flickering, flickerTimer }
-        let streams = [];     // Active rain/delete streams
-        let colCooldown = []; // Per-column spawn cooldowns
-        let colActive = [];   // Per-column active stream count (updated each frame)
+        let grid = [];
+        let streams = [];
+        let colCooldown = [];
+        let colActive = [];
 
         class Stream {
             constructor(col, startRow) {
@@ -63,7 +74,7 @@
                 this.row = startRow !== undefined ? startRow : -Math.floor(Math.random() * rows * 0.5);
                 this.speed = 0.3 + Math.random() * 0.7;
                 this.length = 8 + Math.floor(Math.random() * 22);
-                this.highlighted = Math.random() < 0.2;  // ~1 in 5 have bright white head
+                this.highlighted = Math.random() < 0.2;
                 this.accum = 0;
                 this.alive = true;
                 this.spawned = 0;
@@ -73,7 +84,6 @@
             step() {
                 this.row++;
                 this.spawned++;
-
                 if (this.row >= 0 && this.row < rows) {
                     const cell = grid[this.row][this.col];
                     cell.char = rc();
@@ -85,7 +95,6 @@
                         cell.flickerTimer = 2 + ((Math.random() * 5) | 0);
                     }
                 }
-
                 if (this.spawned > this.maxSpawn || this.row > rows + 5) {
                     this.alive = false;
                 }
@@ -153,18 +162,20 @@
             colCooldown = new Array(cols).fill(0);
             colActive = new Array(cols).fill(0);
 
-            // Seed streams across all columns
+            const density = cfg.density || 1.0;
+
+            // Seed streams — density controls how many per column
             for (let cl = 0; cl < cols; cl++) {
-                const count = 1 + ((Math.random() * 2) | 0);
+                const count = Math.max(1, Math.round((1 + Math.random()) * density));
                 for (let i = 0; i < count; i++) {
                     streams.push(new Stream(cl, -((Math.random() * rows * 1.2) | 0)));
                 }
             }
 
-            // ── Warm-up: pre-simulate ~3 seconds so the screen starts full ──
-            const warmupSteps = 180; // ~3 sec at 60fps
+            // ── Warm-up: pre-simulate so the screen starts populated ──
+            const warmupSteps = 180;
             const warmupDt = 1 / 60;
-            const spdMul = (cfg.speed / 0.35) * (fs * 0.7);
+            const spdMul = ((cfg.speed || 0.35) / 0.35) * (fs * 0.7);
             for (let i = 0; i < warmupSteps; i++) {
                 for (const s of streams) {
                     const sv = s.speed;
@@ -173,7 +184,6 @@
                     s.speed = sv;
                 }
                 streams = streams.filter(s => s.alive);
-                // Simplified fade for warmup (frame-rate independent)
                 for (let r = 0; r < rows; r++) {
                     for (let cl = 0; cl < cols; cl++) {
                         const cell = grid[r][cl];
@@ -187,12 +197,11 @@
                         cell.isHead = false;
                     }
                 }
-                // Simplified spawning during warmup
                 if (i % 3 === 0) {
                     for (let cl = 0; cl < cols; cl++) {
                         let active = 0;
                         for (const s of streams) if (s.alive && s.col === cl) active++;
-                        if (active < 1 && Math.random() < 0.15) {
+                        if (active < 1 && Math.random() < 0.15 * density) {
                             streams.push(new Stream(cl));
                         }
                     }
@@ -202,16 +211,23 @@
             lastTime = performance.now();
         }
 
+        var lastTime = performance.now();
+
         window.addEventListener('resize', init);
         init();
 
         // ── Spawn management ──
         function spawnStreams() {
-            // Build per-column active counts in one pass
             colActive.fill(0);
             for (const s of streams) {
                 if (s.alive) colActive[s.col]++;
             }
+
+            const density = cfg.density || 1.0;
+            // Scale spawn thresholds by density
+            const maxPerCol = Math.max(1, Math.round(2 * density));
+            const spawnChance1 = 0.06 * density;  // Chance to spawn when column empty
+            const spawnChance2 = 0.015 * density;  // Chance to add second stream
 
             for (let cl = 0; cl < cols; cl++) {
                 if (colCooldown[cl] > 0) {
@@ -221,24 +237,22 @@
 
                 const active = colActive[cl];
 
-                if (active < 1 && Math.random() < 0.08) {
+                if (active < 1 && Math.random() < spawnChance1) {
                     streams.push(new Stream(cl));
-                    colCooldown[cl] = 8 + ((Math.random() * 15) | 0);
-                } else if (active < 2 && Math.random() < 0.02) {
+                    colCooldown[cl] = Math.max(3, 8 + ((Math.random() * 15) | 0) - density * 4);
+                } else if (active < maxPerCol && Math.random() < spawnChance2) {
                     streams.push(new Stream(cl));
-                    colCooldown[cl] = 12 + ((Math.random() * 20) | 0);
+                    colCooldown[cl] = Math.max(5, 12 + ((Math.random() * 20) | 0) - density * 4);
                 }
 
-                // Occasional deletion streams to create breathing room
-                if (active > 0 && Math.random() < 0.003) {
+                // Deletion streams (less frequent at high density)
+                if (active > 0 && Math.random() < 0.003 / density) {
                     streams.push(new DeleteStream(cl));
                 }
             }
         }
 
         // ── Render loop ──
-        let lastTime = performance.now();
-
         function frame(now) {
             const rawDt = (now - lastTime) / 1000;
             const dt = Math.min(rawDt, 0.05);
@@ -248,7 +262,6 @@
             const baseSpeed = cfg.speed || 0.35;
             const speedMul = (baseSpeed / 0.35) * (fs * 0.7);
 
-            // Update streams
             for (const s of streams) {
                 const sv = s.speed;
                 s.speed = sv * speedMul;
@@ -256,22 +269,16 @@
                 s.speed = sv;
             }
 
-            // Prune dead streams
             streams = streams.filter(s => s.alive);
-
-            // Spawn replacements
             spawnStreams();
 
-            // ── Fade & flicker (frame-rate independent) ──
-            // Compute per-frame fade multiplier from dt
-            // Target: brightness halves in ~0.8 seconds
+            // ── Fade (frame-rate independent) ──
             const halfLife = 0.6 + baseSpeed * 0.5;
             const fadeMul = Math.pow(0.5, dt / halfLife);
 
             for (let r = 0; r < rows; r++) {
                 for (let cl = 0; cl < cols; cl++) {
                     const cell = grid[r][cl];
-
                     if (cell.brightness > 0 && !cell.isHead) {
                         cell.brightness *= fadeMul;
                         if (cell.brightness < 0.008) {
@@ -281,8 +288,6 @@
                         }
                     }
                     cell.isHead = false;
-
-                    // Glyph flicker (periodic character swap)
                     if (cell.flickering && cell.brightness > 0.04) {
                         cell.flickerTimer--;
                         if (cell.flickerTimer <= 0) {
@@ -303,59 +308,43 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
 
-            // Batch: draw non-glowing cells first, then glowing heads
-            // This minimizes shadowBlur state changes (expensive)
-            
-            // Pass 1: Normal trail cells (no glow)
+            // Pass 1: Trail cells (no glow — fast)
             ctx.shadowBlur = 0;
             for (let r = 0; r < rows; r++) {
                 for (let cl = 0; cl < cols; cl++) {
                     const cell = grid[r][cl];
                     if (cell.brightness <= 0 || !cell.char) continue;
                     const b = cell.brightness;
-
-                    // Skip heads — drawn in pass 2
                     if (cell.highlighted && b > 0.85) continue;
                     if (b > 0.9) continue;
 
                     const x = cl * fs + fs / 2;
                     const y = r * fs;
-
-                    // Phosphor decay curve
-                    const intensity = b * b; // Quadratic falloff for that CRT glow feel
-                    const rr = (cr * intensity * 0.12) | 0;
-                    const gg = (cg * intensity) | 0;
-                    const bb = (cb * intensity * 0.12) | 0;
-                    ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
+                    const intensity = b * b;
+                    ctx.fillStyle = `rgb(${(cr * intensity * 0.12) | 0},${(cg * intensity) | 0},${(cb * intensity * 0.12) | 0})`;
                     ctx.fillText(cell.char, x, y);
                 }
             }
 
-            // Pass 2: Bright heads and recently-lit cells (with glow)
+            // Pass 2: Bright heads (with glow — fewer calls)
             for (let r = 0; r < rows; r++) {
                 for (let cl = 0; cl < cols; cl++) {
                     const cell = grid[r][cl];
                     if (cell.brightness <= 0 || !cell.char) continue;
                     const b = cell.brightness;
-
                     const x = cl * fs + fs / 2;
                     const y = r * fs;
 
                     if (cell.highlighted && b > 0.85) {
-                        // ★ Bright white head — the iconic leading cursor
                         ctx.shadowBlur = 20;
                         ctx.shadowColor = `rgba(${cr},${cg},${cb},0.9)`;
                         ctx.fillStyle = `rgba(255,255,255,${Math.min(1, b * 1.1).toFixed(2)})`;
                         ctx.fillText(cell.char, x, y);
                     } else if (b > 0.9) {
-                        // Recently placed: bright green/white mix with subtle glow
-                        const mix = (b - 0.9) * 10; // 0→1 over 0.9→1.0
-                        const rr = (cr + (255 - cr) * mix * 0.5) | 0;
-                        const gg = (cg + (255 - cg) * mix * 0.5) | 0;
-                        const bb = (cb + (255 - cb) * mix * 0.5) | 0;
+                        const mix = (b - 0.9) * 10;
                         ctx.shadowBlur = 10 * mix;
                         ctx.shadowColor = cfg.color || '#00ff41';
-                        ctx.fillStyle = `rgb(${rr},${gg},${bb})`;
+                        ctx.fillStyle = `rgb(${(cr + (255 - cr) * mix * 0.5) | 0},${(cg + (255 - cg) * mix * 0.5) | 0},${(cb + (255 - cb) * mix * 0.5) | 0})`;
                         ctx.fillText(cell.char, x, y);
                     }
                 }

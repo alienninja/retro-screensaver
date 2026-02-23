@@ -19,7 +19,7 @@ const SS_CFG = {
     maze: { moveSpeed: 0.014, turnSpeed: 0.045, speed: 1.0 },
     mystify: { numPolys: 2, sides: 4, speed: 1.8, trailLen: 16 },
     starfield: { numStars: 350, speed: 2.0 },
-    matrix: { fontSize: 16, speed: 0.35, color: '#00ff41' },
+    matrix: { fontSize: 16, speed: 0.35, color: '#00ff41', density: 1.0 },
     dvd: { speed: 1.8 },
     text3d: { 
         type: 'text', // 'text' or 'time'
@@ -159,6 +159,74 @@ function closeWin(id) {
     const tbi = document.getElementById('tbi-' + id);
     if (tbi) tbi.remove();
     delete windows[id];
+}
+
+function launchBrowser() {
+    if (Object.keys(windows).length >= MAX_WINDOWS) {
+        showError('System Resources', 'Too many windows open.<br><br>Please close some windows before opening new ones.', '⚠️');
+        return;
+    }
+    const id = 'win-' + (nextWinId++);
+    closeAllMenus();
+
+    const win = document.createElement('div');
+    win.className = 'ww';
+    win.id = id;
+    const left = 60 + Object.keys(windows).length * 22;
+    const top = 20 + Object.keys(windows).length * 22;
+    win.style.cssText = `left:${left}px;top:${top}px;width:${Math.min(innerWidth - 80, 800)}px;height:${Math.min(innerHeight - 60, 560)}px;z-index:${++nextZ};`;
+
+    win.innerHTML = `
+        <div class="wtb" id="tb-${id}">
+            <div class="wtb-l"><span>🌐</span><span>Internet Explorer - retro.bithash.cc</span></div>
+            <div class="wtb-btns">
+                <button onclick="minWin('${id}')">\_</button>
+                <button onclick="maxWin('${id}')">□</button>
+                <button onclick="closeWin('${id}')">✕</button>
+            </div>
+        </div>
+        <div class="wmb">
+            <span class="mi">File</span>
+            <span class="mi">Edit</span>
+            <span class="mi">View</span>
+        </div>
+        <div class="wsb" style="border-bottom:2px solid;border-bottom-color:#808080 #fff #fff #808080;padding:2px 4px;gap:4px;">
+            <span style="font-size:11px;">Address:</span>
+            <div style="flex:1;height:18px;border:2px solid;border-color:#808080 #fff #fff #808080;background:#fff;padding:0 3px;font-size:11px;line-height:18px;overflow:hidden;">https://retro.bithash.cc</div>
+        </div>
+        <div class="ssc" id="ssc-${id}"></div>
+        <div class="wsb">
+            <div class="sp" id="st-${id}">Done</div>
+            <div class="sp" id="clk-${id}" style="margin-left:auto;"></div>
+        </div>`;
+
+    document.getElementById('desktop').appendChild(win);
+    makeDraggable(win, document.getElementById('tb-' + id));
+    makeResizable(win);
+    bringToFront(win);
+
+    // Load the site itself into the iframe
+    const cont = document.getElementById('ssc-' + id);
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'width:100%;height:100%;border:none;display:block;';
+    iframe.src = './index.html';
+    cont.appendChild(iframe);
+
+    windows[id] = { el: win, ssKey: '__browser__', id, iframeEl: iframe, maxed: false, clockInterval: null };
+    windows[id].clockInterval = setInterval(() => {
+        const e = document.getElementById('clk-' + id);
+        if (e) e.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+    }, 1000);
+
+    // Taskbar item
+    const btn = document.createElement('button');
+    btn.className = 'tbit active';
+    btn.id = 'tbi-' + id;
+    btn.textContent = '🌐 Internet';
+    btn.onclick = () => toggleWinVisibility(id);
+    document.getElementById('tbits').appendChild(btn);
+
+    return id;
 }
 
 function minWin(id) {
@@ -358,8 +426,9 @@ const SS_SETTINGS_UI = {
     starfield: `<div class="drow"><label>Star count:</label><input class="inp" id="cfg-numStars" type="range" min="50" max="800" step="50" value="350" style="width:120px"><span id="cfg-numStars-val">350</span></div>
         <div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.5" max="6" step="0.5" value="2" style="width:120px"><span id="cfg-speed-val">2</span></div>`,
     matrix: `<div class="drow"><label>Font size:</label><select class="sel" id="cfg-fontSize"><option value="12">Small</option><option value="16" selected>Medium</option><option value="22">Large</option></select></div>
-        <div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.1" max="2" step="0.05" value="0.35" style="width:120px"></div>
-        <div class="drow"><label>Color:</label><select class="sel" id="cfg-color"><option value="#00ff41" selected>Green</option><option value="#00ffff">Cyan</option><option value="#ff4444">Red</option><option value="#ffffff">White</option></select></div>`,
+        <div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.1" max="2" step="0.05" value="0.35" style="width:120px"><span id="cfg-speed-val">0.35</span></div>
+        <div class="drow"><label>Density:</label><input class="inp" id="cfg-density" type="range" min="0.3" max="2.0" step="0.1" value="1.0" style="width:120px"><span id="cfg-density-val">1.0</span></div>
+        <div class="drow"><label>Color:</label><select class="sel" id="cfg-color"><option value="#00ff41" selected>Green</option><option value="#00ffff">Cyan</option><option value="#ff4444">Red</option><option value="#ffcc00">Gold</option><option value="#ffffff">White</option><option value="#ff00ff">Purple</option></select></div>`,
     dvd: `<div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.5" max="8" step="0.1" value="1.8" style="width:120px"></div>`,
     maze: `<div class="drow"><label>Move speed:</label><input class="inp" id="cfg-moveSpeed" type="range" min="0.005" max="0.04" step="0.001" value="0.014" style="width:120px"><span id="cfg-moveSpeed-val">0.014</span></div>
         <div class="drow"><label>Turn speed:</label><input class="inp" id="cfg-turnSpeed" type="range" min="0.015" max="0.1" step="0.005" value="0.045" style="width:120px"><span id="cfg-turnSpeed-val">0.045</span></div>`,
@@ -628,8 +697,8 @@ function startPreview(id) {
 
 function prevMystify(ctx, c) {
     const polys = [
-        { pts: [{x: 40, y: 30}, {x: 80, y: 20}, {x: 100, y: 60}, {x: 60, y: 80}, {x: 20, y: 60}], vx: [1.2, -1, 1.5, -1, 1], vy: [-1, 1.2, -1, 1.5, -1], pal: [[0, 255, 255], [0, 80, 255]], h: [] },
-        { pts: [{x: 120, y: 50}, {x: 160, y: 40}, {x: 180, y: 80}, {x: 140, y: 110}, {x: 100, y: 90}], vx: [-1.5, 1, -1, 1.5, -1], vy: [1, -1.5, 1, -1, 1.5], pal: [[255, 0, 220], [255, 80, 0]], h: [] }
+        { pts: [{x: 40, y: 30}, {x: 80, y: 20}, {x: 100, y: 60}, {x: 60, y: 80}, {x: 20, y: 60}], vx: [0.5, -0.4, 0.6, -0.4, 0.4], vy: [-0.4, 0.5, -0.4, 0.6, -0.4], pal: [[0, 255, 255], [0, 80, 255]], h: [] },
+        { pts: [{x: 120, y: 50}, {x: 160, y: 40}, {x: 180, y: 80}, {x: 140, y: 110}, {x: 100, y: 90}], vx: [-0.6, 0.4, -0.4, 0.6, -0.4], vy: [0.4, -0.6, 0.4, -0.4, 0.6], pal: [[255, 0, 220], [255, 80, 0]], h: [] }
     ];
     const TRAIL = 20;
     polys.forEach(p => {
@@ -694,7 +763,7 @@ function prevDefrag98(ctx, c) {
     }
 
     function frame() {
-        for (let s = 0; s < 3; s++) {
+        for (let s = 0; s < 1; s++) {
             if (cursor >= total) {
                 for (let i = 0; i < total; i++) {
                     if (grid[i] === BLUE && Math.random() < 0.38) grid[i] = Math.random() < 0.6 ? CYAN : EMPTY;
@@ -744,7 +813,7 @@ function prevDefrag(ctx, c) {
     }
 
     function frame() {
-        for (let s = 0; s < 4; s++) {
+        for (let s = 0; s < 1; s++) {
             if (cursor >= total) {
                 for (let i = Math.floor(total * 0.04); i < total; i++) {
                     if (grid[i] === OPT && Math.random() < 0.4) grid[i] = Math.random() < 0.7 ? FRAG : EMPTY;
@@ -776,7 +845,7 @@ function prevStarfield(ctx, c) {
     let spd = 0;
     
     function frame() {
-        spd = Math.min(5, spd + 0.05);
+        spd = Math.min(2, spd + 0.02);
         ctx.fillStyle = 'rgba(0, 0, 0, .5)';
         ctx.fillRect(0, 0, c.width, c.height);
         for (const s of stars) {
@@ -822,7 +891,7 @@ function prevMatrix(ctx, c) {
                 ctx.fillStyle = '#0f0';
                 if (py > 7) ctx.fillText(CH[Math.floor(Math.random() * CH.length)], x, py - 7);
             }
-            drops[i] += 0.8;
+            drops[i] += 0.35;
             if (drops[i] * 7 > c.height && Math.random() > 0.97) drops[i] = Math.random() * -10;
         });
         prevAnimId = requestAnimationFrame(frame);
@@ -831,7 +900,7 @@ function prevMatrix(ctx, c) {
 }
 
 function prevDVD(ctx, c) {
-    let x = 40, y = 30, vx = 1.0, vy = 0.7, hue = 200;
+    let x = 40, y = 30, vx = 0.4, vy = 0.28, hue = 200;
     
     function frame() {
         ctx.fillStyle = '#000';
@@ -896,22 +965,26 @@ function prevPipes(ctx, c) {
     }));
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, c.width, c.height);
+    let tick = 0;
     
     function frame() {
-        pipes.forEach(p => {
-            ctx.fillStyle = p.col;
-            ctx.fillRect(p.x + 1, p.y + 1, 8, 8);
-            if (Math.random() < 0.2) p.dir = Math.floor(Math.random() * 4);
-            p.x = ((p.x + DIRS[p.dir][0] * 10) + c.width * 10) % c.width;
-            p.y = ((p.y + DIRS[p.dir][1] * 10) + c.height * 10) % c.height;
-            p.age++;
-            if (p.age > 80) {
-                p.x = Math.floor(Math.random() * 20) * 10;
-                p.y = Math.floor(Math.random() * 13) * 10;
-                p.col = COLS[Math.floor(Math.random() * COLS.length)];
-                p.age = 0;
-            }
-        });
+        tick++;
+        if (tick % 3 === 0) {
+            pipes.forEach(p => {
+                ctx.fillStyle = p.col;
+                ctx.fillRect(p.x + 1, p.y + 1, 8, 8);
+                if (Math.random() < 0.2) p.dir = Math.floor(Math.random() * 4);
+                p.x = ((p.x + DIRS[p.dir][0] * 10) + c.width * 10) % c.width;
+                p.y = ((p.y + DIRS[p.dir][1] * 10) + c.height * 10) % c.height;
+                p.age++;
+                if (p.age > 80) {
+                    p.x = Math.floor(Math.random() * 20) * 10;
+                    p.y = Math.floor(Math.random() * 13) * 10;
+                    p.col = COLS[Math.floor(Math.random() * COLS.length)];
+                    p.age = 0;
+                }
+            });
+        }
         prevAnimId = requestAnimationFrame(frame);
     }
     frame();
@@ -1003,11 +1076,15 @@ function prevMaze(ctx, c) {
         ctx.fillRect(wx * CELL + 3, wy * CELL + 3, CELL - 5, CELL - 5);
     }
     
+    let tick = 0;
     function frame() {
+        tick++;
+        if (tick % 2 === 0) {
+            wdir = decide();
+            wx = Math.max(0, Math.min(COLS2 - 1, wx + WD[wdir][0]));
+            wy = Math.max(0, Math.min(ROWS - 1, wy + WD[wdir][1]));
+        }
         draw();
-        wdir = decide();
-        wx = Math.max(0, Math.min(COLS2 - 1, wx + WD[wdir][0]));
-        wy = Math.max(0, Math.min(ROWS - 1, wy + WD[wdir][1]));
         prevAnimId = requestAnimationFrame(frame);
     }
     frame();
@@ -1019,7 +1096,7 @@ function prevText3D(ctx, c) {
     let ti = 0, tc = 0;
     
     function frame() {
-        t += 0.04;
+        t += 0.015;
         ctx.fillStyle = 'rgba(0, 0, 0, .08)';
         ctx.fillRect(0, 0, c.width, c.height);
         ctx.save();
