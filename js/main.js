@@ -1,4 +1,10 @@
 // ============================================================
+// VERSION
+// ============================================================
+const APP_VERSION = '1.0.0';
+const APP_BUILD = '1998.02.22'; // ;)
+
+// ============================================================
 // SCREENSAVER METADATA
 // ============================================================
 const SS_META = {
@@ -540,6 +546,7 @@ document.getElementById('dp-pwd').addEventListener('change', function() {
 // ── About ───────────────────────────────────────────────
 function openAbout() {
     closeAllMenus();
+    document.getElementById('about-ver').textContent = APP_VERSION + ' (Build ' + APP_BUILD + ')';
     const a = document.getElementById('about');
     a.classList.remove('hidden');
     bringToFront(a);
@@ -561,8 +568,7 @@ function openDonate() {
     document.getElementById('donate-print-btn').style.display = 'none';
     document.getElementById('donate-progress-inner').style.width = '0%';
     document.getElementById('donate-status').textContent = 'Connecting to server...';
-    document.getElementById('coffee-cup').classList.remove('spilling');
-    document.getElementById('coffee-spill').classList.remove('active');
+
 
     // Run the fake progress sequence
     const bar = document.getElementById('donate-progress-inner');
@@ -579,9 +585,7 @@ function openDonate() {
         [4000, () => {
             bar.style.width = '95%';
             status.textContent = 'Delivering to developer...';
-            // Spill the coffee!
-            document.getElementById('coffee-cup').classList.add('spilling');
-            document.getElementById('coffee-spill').classList.add('active');
+            // Done delivering
         }],
         [4800, () => {
             bar.style.width = '100%';
