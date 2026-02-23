@@ -5,7 +5,7 @@
   X-XSS-Protection: 1; mode=block
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; connect-src 'self'
 
 # Short cache on mutable assets so deploys take effect quickly
 /js/*
@@ -16,6 +16,10 @@
 
 /index.html
   Cache-Control: public, max-age=60
+
+# Three.js is pinned to r128 — cache aggressively
+/js/three.r128.min.js
+  Cache-Control: public, max-age=31536000, immutable
 
 # Screensavers can cache longer (less frequently changed)
 /screensavers/*
