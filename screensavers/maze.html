@@ -3,14 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Maze - Classic 95 Edition</title>
+    <title>3D Maze Screensaver — Windows 95/98 Edition | retro.bithash.cc</title>
+    <meta name="description" content="Walk through a first-person 3D maze just like the classic Windows 95/98 screensaver. Brick walls, rats, and OpenGL logos — all in your browser with WebGL.">
+    <link rel="canonical" href="https://retro.bithash.cc/screensavers/maze.html">
+    <meta property="og:title" content="3D Maze Screensaver — Windows 95/98 in Your Browser">
+    <meta property="og:description" content="The classic first-person 3D maze screensaver from Windows 95/98, faithfully remade in WebGL.">
+    <meta property="og:url" content="https://retro.bithash.cc/screensavers/maze.html">
+    <meta property="og:image" content="https://retro.bithash.cc/og-image.png">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
     <style>
         * { margin: 0; padding: 0; }
         body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
+        .back-link { position: fixed; top: 8px; left: 8px; z-index: 999; font: 12px Tahoma, Arial, sans-serif; color: rgba(255,255,255,0.4); text-decoration: none; padding: 4px 8px; transition: color 0.2s; }
+        .back-link:hover { color: rgba(255,255,255,0.9); }
     </style>
 </head>
 <body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-OLBgp1GsljhM2TJ+sbHjaiH9txEUvgdDTAzHv2P24donTt6/529l+9Ua0vFImLlb" crossorigin="anonymous"></script>
+    <a href="/" class="back-link" title="Back to Windows 98 Desktop">← Desktop</a>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous"></script>
     <script>
         let cfg = { moveSpeed: 0.014, turnSpeed: 0.045 };
 

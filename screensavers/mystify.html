@@ -3,14 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mystify Your Mind - The Real Deal</title>
+    <title>Mystify Your Mind Screensaver — Windows 98 Edition | retro.bithash.cc</title>
+    <meta name="description" content="Hypnotic bouncing polygons with colorful trails — the authentic Mystify Your Mind screensaver from Windows 98, remade in HTML5 Canvas.">
+    <link rel="canonical" href="https://retro.bithash.cc/screensavers/mystify.html">
+    <meta property="og:title" content="Mystify Your Mind Screensaver — Windows 98 in Your Browser">
+    <meta property="og:description" content="Hypnotic bouncing polygons with colorful trails from Windows 98.">
+    <meta property="og:url" content="https://retro.bithash.cc/screensavers/mystify.html">
+    <meta property="og:image" content="https://retro.bithash.cc/og-image.png">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
     <style>
         * { margin: 0; padding: 0; }
         body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
         canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+        .back-link { position: fixed; top: 8px; left: 8px; z-index: 999; font: 12px Tahoma, Arial, sans-serif; color: rgba(255,255,255,0.4); text-decoration: none; padding: 4px 8px; transition: color 0.2s; }
+        .back-link:hover { color: rgba(255,255,255,0.9); }
     </style>
 </head>
 <body>
+    <a href="/" class="back-link" title="Back to Windows 98 Desktop">← Desktop</a>
     <canvas id="c"></canvas>
     <script>
         const c = document.getElementById('c');

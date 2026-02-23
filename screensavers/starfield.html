@@ -3,21 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Starfield - Classic 95 Edition</title>
+    <title>Starfield Screensaver — Windows 95/98 Edition | retro.bithash.cc</title>
+    <meta name="description" content="Warp through an endless starfield in this authentic Windows 95/98 screensaver remake. Pure HTML5 Canvas, runs right in your browser.">
+    <link rel="canonical" href="https://retro.bithash.cc/screensavers/starfield.html">
+    <meta property="og:title" content="Starfield Screensaver — Windows 95/98 in Your Browser">
+    <meta property="og:description" content="Warp through stars in this classic Windows screensaver remake.">
+    <meta property="og:url" content="https://retro.bithash.cc/screensavers/starfield.html">
+    <meta property="og:image" content="https://retro.bithash.cc/og-image.png">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
     <style>
-        body { 
-            margin: 0; 
-            padding: 0; 
-            background: #000; 
-            overflow: hidden; 
-        }
-        canvas { 
-            display: block; 
-            image-rendering: pixelated; 
-        }
+        body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+        canvas { display: block; image-rendering: pixelated; }
+        .back-link { position: fixed; top: 8px; left: 8px; z-index: 999; font: 12px Tahoma, Arial, sans-serif; color: rgba(255,255,255,0.4); text-decoration: none; padding: 4px 8px; transition: color 0.2s; }
+        .back-link:hover { color: rgba(255,255,255,0.9); }
     </style>
 </head>
 <body>
+    <a href="/" class="back-link" title="Back to Windows 98 Desktop">← Desktop</a>
     <canvas id="c"></canvas>
     <script>
         const c = document.getElementById('c');

@@ -3,19 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matrix Rain - The Real Deal</title>
+    <title>Matrix Rain Screensaver — Digital Rain Effect | retro.bithash.cc</title>
+    <meta name="description" content="Watch cascading green katakana characters rain down your screen in this Matrix-inspired screensaver. Pure HTML5 Canvas, configurable colors and speed.">
+    <link rel="canonical" href="https://retro.bithash.cc/screensavers/matrix.html">
+    <meta property="og:title" content="Matrix Rain Screensaver — In Your Browser">
+    <meta property="og:description" content="Cascading green katakana Matrix digital rain effect in HTML5 Canvas.">
+    <meta property="og:url" content="https://retro.bithash.cc/screensavers/matrix.html">
+    <meta property="og:image" content="https://retro.bithash.cc/og-image.png">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
     <style>
-        body { 
-            margin: 0; 
-            background: #000; 
-            overflow: hidden; 
-        }
-        canvas { 
-            display: block; 
-        }
+        body { margin: 0; background: #000; overflow: hidden; }
+        canvas { display: block; }
+        .back-link { position: fixed; top: 8px; left: 8px; z-index: 999; font: 12px Tahoma, Arial, sans-serif; color: rgba(255,255,255,0.4); text-decoration: none; padding: 4px 8px; transition: color 0.2s; }
+        .back-link:hover { color: rgba(255,255,255,0.9); }
     </style>
 </head>
 <body>
+    <a href="/" class="back-link" title="Back to Windows 98 Desktop">← Desktop</a>
     <canvas id="c"></canvas>
     <script>
         const c = document.getElementById('c');

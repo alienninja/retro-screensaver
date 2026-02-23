@@ -19,6 +19,35 @@
     <meta name="twitter:description" content="9 authentic Win98 screensaver remakes. 3D Pipes, Maze, Mystify, Starfield, Matrix Rain & more.">
     <meta name="twitter:image" content="https://retro.bithash.cc/og-image.png">
     <meta name="theme-color" content="#008080">
+    <link rel="canonical" href="https://retro.bithash.cc/">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Windows 98 Screensavers",
+        "url": "https://retro.bithash.cc",
+        "description": "9 authentic Windows 98 screensaver remakes running in the browser. 3D Pipes, Maze, Mystify, Starfield, Matrix Rain, DVD Bounce, 3D Text, and two Defrag simulators built with HTML5 Canvas and WebGL.",
+        "applicationCategory": "Entertainment",
+        "operatingSystem": "Any (Web Browser)",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "author": {
+            "@type": "Person",
+            "name": "bithash",
+            "url": "https://bithash.cc",
+            "email": "hello@bithash.cc"
+        },
+        "screenshot": "https://retro.bithash.cc/og-image.png",
+        "browserRequirements": "Requires JavaScript, WebGL support",
+        "softwareVersion": "1.0.0",
+        "keywords": ["Windows 98", "screensaver", "retro", "nostalgia", "3D Pipes", "3D Maze", "Mystify", "Starfield", "Matrix Rain", "DVD Bounce", "defrag", "browser game", "WebGL", "HTML5 Canvas"]
+    }
+    </script>
 
     <!-- Favicon: Win98-style monitor emoji as SVG favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
@@ -37,7 +66,10 @@
     </div>
 </noscript>
 
-<div id="desktop">
+<main id="desktop">
+    <!-- SEO: Visible heading for crawlers, styled to blend with Win98 UI -->
+    <h1 class="sr-only">Windows 98 Screensavers — Play Classic Screensavers in Your Browser</h1>
+    <p class="sr-only">Relive the nostalgia of Windows 98 with 9 authentic screensaver remakes: 3D Pipes, 3D Maze, Mystify Your Mind, Starfield Simulation, Matrix Rain, Bouncing DVD Logo, 3D Text, and two Defrag simulators. All built with HTML5 Canvas and WebGL — no plugins required.</p>
     <div id="icon-grid">
         <div class="di" ondblclick="launchSS('pipes')">
             <div class="ic">🟥</div>
@@ -258,7 +290,9 @@
                 HTML5 Canvas &amp; Three.js WebGL<br><br>
                 <small>Double-click icons or use Start menu<br>
                 Multiple screensavers can run at once!<br>
-                ESC closes the active window</small>
+                ESC closes the active window</small><br><br>
+                <small>📧 <a href="mailto:hello@bithash.cc" style="color:#000080;">hello@bithash.cc</a><br>
+                🌐 <a href="https://bithash.cc" style="color:#000080;" target="_blank">bithash.cc</a></small>
             </div>
         </div>
         <div class="dfoot">
@@ -326,7 +360,7 @@
             <button class="btn" id="donate-print-btn" class="hidden" onclick="fakePrint()" style="display:none;">Print Receipt</button>
         </div>
     </div>
-</div>
+</main>
 
 <!-- TASKBAR -->
 <div id="taskbar">

@@ -3,11 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bouncing DVD Player</title>
+    <title>Bouncing DVD Logo Screensaver — Will It Hit the Corner? | retro.bithash.cc</title>
+    <meta name="description" content="Watch the iconic DVD logo bounce around the screen and wait for the legendary corner hit. A faithful recreation of the DVD player screensaver in HTML5 Canvas.">
+    <link rel="canonical" href="https://retro.bithash.cc/screensavers/dvd.html">
+    <meta property="og:title" content="Bouncing DVD Logo — Will It Hit the Corner?">
+    <meta property="og:description" content="The iconic DVD bounce screensaver. Watch the logo and wait for the legendary corner hit.">
+    <meta property="og:url" content="https://retro.bithash.cc/screensavers/dvd.html">
+    <meta property="og:image" content="https://retro.bithash.cc/og-image.png">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
     <style>
         * { margin: 0; padding: 0; }
         body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
         canvas { display: block; }
+        .back-link { position: fixed; top: 8px; left: 8px; z-index: 999; font: 12px Tahoma, Arial, sans-serif; color: rgba(255,255,255,0.4); text-decoration: none; padding: 4px 8px; transition: color 0.2s; }
+        .back-link:hover { color: rgba(255,255,255,0.9); }
         
         #fl {
             position: fixed; inset: 0; background: #fff;
@@ -29,6 +39,7 @@
     </style>
 </head>
 <body>
+    <a href="/" class="back-link" title="Back to Windows 98 Desktop">← Desktop</a>
     <canvas id="c"></canvas>
     <div id="fl"></div>
     <div id="cm">🎉 PERFECT CORNER! 🎉</div>
