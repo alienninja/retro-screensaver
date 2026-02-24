@@ -20,6 +20,7 @@
     </style>
 </head>
 <body>
+    <a href="/" class="back-link">← retro.bithash.cc</a>
     <script src="/js/three.r128.min.js"></script>
     <script>
         const GRID_LIMIT = 10;
@@ -78,6 +79,7 @@
 
             reset() {
                 this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+                if (this.mat) this.mat.dispose();
                 this.mat = new THREE.MeshPhongMaterial({ 
                     color: this.color, emissive: 0x111111, specular: 0xffffff, shininess: 100 
                 });

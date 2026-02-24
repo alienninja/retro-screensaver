@@ -165,6 +165,7 @@
     </style>
 </head>
 <body>
+    <a href="/" class="back-link">← retro.bithash.cc</a>
     <div id="titlebar">
         <span class="tb-icon">🗂️</span>
         <span>Disk Defragmenter</span>
@@ -556,6 +557,14 @@
                 if (grid[i] === EMPTY && Math.random() < 0.06) {
                     grid[i] = FRAG;
                 }
+            }
+
+            // Recompute counters after re-scattering
+            countFrag = 0;
+            countOpt = 0;
+            for (let i = 0; i < totalCells; i++) {
+                if (grid[i] === FRAG) countFrag++;
+                else if (grid[i] === OPT) countOpt++;
             }
 
             phase = 'DEFRAG';

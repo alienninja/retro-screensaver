@@ -184,6 +184,7 @@
     </style>
 </head>
 <body>
+    <a href="/" class="back-link">← retro.bithash.cc</a>
     <div class="titlebar">
         <div class="titlebar-left">
             <span class="tb-icon">📀</span>
@@ -490,6 +491,14 @@
             // Add some cyan to the tail
             for (let i = Math.floor(totalCells * 0.75); i < totalCells; i++) {
                 if (grid[i] === EMPTY && Math.random() < 0.08) grid[i] = UNFRAG;
+            }
+
+            // Recompute counters after re-scattering
+            countUnfrag = 0;
+            countDefrag = 0;
+            for (let i = 0; i < totalCells; i++) {
+                if (grid[i] === UNFRAG) countUnfrag++;
+                else if (grid[i] === DEFRAG) countDefrag++;
             }
 
             phase = 'DEFRAG';
