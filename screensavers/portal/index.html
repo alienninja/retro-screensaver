@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal</title>
+  <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+
+  <!-- Persistent HUD -->
+  <div id="hud">
+    <span id="hud-depth">DEPTH: 0</span>
+    <span id="hud-era"></span>
+    <a href="/" id="hud-exit" title="Exit portal">✕</a>
+  </div>
+
+  <!-- Destination renders here -->
+  <div id="destination-container"></div>
+
+  <!-- Warp overlay (sits on top of everything) -->
+  <div id="warp-overlay"></div>
+  <canvas id="warp-canvas"></canvas>
+
+  <script type="module" src="js/engine.js"></script>
+</body>
+</html>
