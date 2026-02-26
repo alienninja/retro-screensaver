@@ -55,6 +55,24 @@ html, body {
     );
 }
 
+/* BLACK HOLE ICON */
+.blackhole-ic {
+    animation: bhPulse 2.8s ease-in-out infinite;
+    display: inline-block;
+    filter: drop-shadow(0 0 6px rgba(120, 0, 200, 0.7));
+}
+@keyframes bhPulse {
+    0%,  100% { filter: drop-shadow(0 0 4px rgba(100, 0, 180, 0.5)) brightness(0.9); transform: scale(1);    }
+    50%        { filter: drop-shadow(0 0 14px rgba(180, 0, 255, 0.9)) brightness(1.15); transform: scale(1.08); }
+}
+.di:hover .blackhole-ic {
+    animation: bhSpin 1.2s ease-in-out infinite;
+}
+@keyframes bhSpin {
+    0%   { transform: scale(1.08) rotate(0deg);   filter: drop-shadow(0 0 16px rgba(200, 0, 255, 1)); }
+    100% { transform: scale(1.08) rotate(360deg); filter: drop-shadow(0 0 16px rgba(200, 0, 255, 1)); }
+}
+
 /* DESKTOP ICONS */
 .di {
     display: flex;

@@ -1,0 +1,81 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+/* ── Destination container ─────────────────────────────────────── */
+#destination-container {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  transition: filter 0.2s;
+}
+
+/* ── HUD ────────────────────────────────────────────────────────── */
+#hud {
+  position: fixed;
+  top: 8px;
+  right: 12px;
+  z-index: 9997;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+  user-select: none;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 6px rgba(255,255,255,0.3);
+}
+#hud-exit {
+  pointer-events: all;
+  color: rgba(255,255,255,0.25);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.2s;
+  cursor: pointer;
+}
+#hud-exit:hover { color: rgba(255,255,255,0.8); }
+
+/* ── Warp overlay ───────────────────────────────────────────────── */
+#warp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0;
+  background: #000;
+}
+#warp-overlay.warp-active    { pointer-events: all; }
+#warp-overlay.warp-out       { animation: wOverlayIn  0.75s ease-in forwards; }
+#warp-overlay.warp-solid     { opacity: 1; }
+#warp-overlay.warp-in        { animation: wOverlayOut 0.55s ease-out forwards;
+                               background: radial-gradient(ellipse at center, #fff 0%, #000 55%); }
+
+@keyframes wOverlayIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wOverlayOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* destination container distort on exit */
+#destination-container.warp-out {
+  animation: destSuck 0.75s ease-in forwards;
+}
+@keyframes destSuck {
+  0%   { transform: scale(1)    ; filter: blur(0px)   brightness(1); }
+  60%  { transform: scale(1.04) ; filter: blur(1px)   brightness(1.4); }
+  100% { transform: scale(0.02) ; filter: blur(18px)  brightness(3); }
+}
+
+/* ── Warp canvas (static/noise) ─────────────────────────────────── */
+#warp-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  mix-blend-mode: overlay;
+  opacity: 0.65;
+  pointer-events: none;
+}
