@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 3.1 Program Manager — retro.bithash.cc</title>
+    <meta name="description" content="Step back to 1992 with this authentic Windows 3.1 Program Manager recreation. Minesweeper, Solitaire, Notepad, Clock, Calculator, Paintbrush and more — all running in your browser.">
+    <link rel="canonical" href="https://retro.bithash.cc/screensavers/win31/">
+    <meta property="og:title" content="Windows 3.1 Program Manager — In Your Browser">
+    <meta property="og:description" content="An authentic Windows 3.1 Program Manager recreation with Minesweeper, Solitaire, Notepad, and more.">
+    <meta property="og:url" content="https://retro.bithash.cc/screensavers/win31/">
+    <meta property="og:image" content="https://retro.bithash.cc/og-image.png">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
+
+    <link rel="stylesheet" href="css/win31.css">
+
+    <!-- Core system (defines globals: nextZ, appId, createAppWindow, etc.) -->
+    <script src="js/system.js" defer></script>
+    <!-- Virtual filesystem (defines Win31FS) -->
+    <script src="js/filesystem.js" defer></script>
+
+    <!-- Apps -->
+    <script src="apps/about.js" defer></script>
+    <script src="apps/notepad.js" defer></script>
+    <script src="apps/clock.js" defer></script>
+    <script src="apps/calculator.js" defer></script>
+    <script src="apps/paintbrush.js" defer></script>
+    <script src="apps/solitaire.js" defer></script>
+    <script src="apps/minesweeper.js" defer></script>
+    <script src="apps/filemanager.js" defer></script>
+    <script src="apps/controlpanel.js" defer></script>
+    <script src="apps/write.js" defer></script>
+    <!-- Terminal last: depends on Win31FS and other app launchers -->
+    <script src="apps/terminal.js" defer></script>
+</head>
+<body>
+
+<a href="/" class="back-link">← Back to Windows 98</a>
+
+<!-- PROGRAM MANAGER TITLE BAR -->
+<div id="pm-titlebar">
+    <div class="tb-left">
+        <button class="sys-btn" style="font-size:7px;">▬</button>
+        <span>Program Manager</span>
+    </div>
+    <div class="tb-left">
+        <button class="sys-btn">▲</button>
+        <button class="sys-btn">▼</button>
+    </div>
+</div>
+
+<!-- PROGRAM MANAGER MENU BAR -->
+<div id="pm-menubar">
+    <span class="pm-menu-item"><span class="underline">F</span>ile</span>
+    <span class="pm-menu-item"><span class="underline">O</span>ptions</span>
+    <span class="pm-menu-item"><span class="underline">W</span>indow</span>
+    <span class="pm-menu-item" onclick="openAbout31()"><span class="underline">H</span>elp</span>
+</div>
+
+<!-- PROGRAM MANAGER MDI DESKTOP -->
+<div id="pm-desktop">
+
+    <!-- GROUP: Main -->
+    <div class="w31 grp-win" id="grp-main" style="left:16px;top:14px;width:360px;height:200px;">
+        <div class="w31-tb" id="grp-main-tb">
+            <span class="w31-tb-left">Main</span>
+            <div class="w31-tb-btns">
+                <button class="w31-btn" onclick="toggleMin('grp-main')">▼</button>
+                <button class="w31-btn">▲</button>
+            </div>
+        </div>
+        <div class="grp-body w31-body">
+            <div class="prog-icon" ondblclick="openFileManager()">
+                <div class="pic">📁</div>
+                <span>File Manager</span>
+            </div>
+            <div class="prog-icon" ondblclick="openControlPanel()">
+                <div class="pic">🎛️</div>
+                <span>Control Panel</span>
+            </div>
+            <div class="prog-icon" ondblclick="openNotepad()">
+                <div class="pic">📝</div>
+                <span>Notepad</span>
+            </div>
+            <div class="prog-icon" ondblclick="openClock31()">
+                <div class="pic">🕐</div>
+                <span>Clock</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- GROUP: Accessories -->
+    <div class="w31 grp-win" id="grp-acc" style="left:16px;top:230px;width:360px;height:190px;">
+        <div class="w31-tb" id="grp-acc-tb">
+            <span class="w31-tb-left">Accessories</span>
+            <div class="w31-tb-btns">
+                <button class="w31-btn" onclick="toggleMin('grp-acc')">▼</button>
+                <button class="w31-btn">▲</button>
+            </div>
+        </div>
+        <div class="grp-body w31-body">
+            <div class="prog-icon" ondblclick="openCalc31()">
+                <div class="pic">🧮</div>
+                <span>Calculator</span>
+            </div>
+            <div class="prog-icon" ondblclick="openPaintbrush()">
+                <div class="pic">🎨</div>
+                <span>Paintbrush</span>
+            </div>
+            <div class="prog-icon" ondblclick="openWrite31()">
+                <div class="pic">✍️</div>
+                <span>Write</span>
+            </div>
+            <div class="prog-icon" ondblclick="openTerminal31()">
+                <div class="pic">🖥️</div>
+                <span>MS-DOS Prompt</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- GROUP: Games -->
+    <div class="w31 grp-win" id="grp-games" style="left:400px;top:14px;width:280px;height:200px;">
+        <div class="w31-tb" id="grp-games-tb">
+            <span class="w31-tb-left">Games</span>
+            <div class="w31-tb-btns">
+                <button class="w31-btn" onclick="toggleMin('grp-games')">▼</button>
+                <button class="w31-btn">▲</button>
+            </div>
+        </div>
+        <div class="grp-body w31-body">
+            <div class="prog-icon" ondblclick="openMinesweeper()">
+                <div class="pic">💣</div>
+                <span>Minesweeper</span>
+            </div>
+            <div class="prog-icon" ondblclick="openSolitaire()">
+                <div class="pic">🃏</div>
+                <span>Solitaire</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- GROUP: Applications -->
+    <div class="w31 grp-win" id="grp-apps" style="left:400px;top:230px;width:280px;height:190px;">
+        <div class="w31-tb" id="grp-apps-tb">
+            <span class="w31-tb-left">Applications</span>
+            <div class="w31-tb-btns">
+                <button class="w31-btn" onclick="toggleMin('grp-apps')">▼</button>
+                <button class="w31-btn">▲</button>
+            </div>
+        </div>
+        <div class="grp-body w31-body">
+            <div class="prog-icon" ondblclick="window.open('/','_self')">
+                <div class="pic">🪟</div>
+                <span>Windows 98</span>
+            </div>
+            <div class="prog-icon" ondblclick="openAbout31()">
+                <div class="pic">ℹ️</div>
+                <span>About...</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
