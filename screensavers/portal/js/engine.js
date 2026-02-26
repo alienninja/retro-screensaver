@@ -16,7 +16,7 @@
  */
 
 import { destinations } from '../destinations/registry.js';
-import { warpOut, warpIn } from './warp.js';
+import { warpOut, warpIn, randomTransition } from './warp.js';
 
 const container  = document.getElementById('destination-container');
 const hudDepth   = document.getElementById('hud-depth');
@@ -65,7 +65,7 @@ const engine = {
   /** Called by a destination when the user finds the portal */
   async jump() {
     depth++;
-    await warpOut();
+    await warpOut(randomTransition());
     await load(pickNext());
     await warpIn();
   },

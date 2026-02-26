@@ -59,23 +59,55 @@ html, body {
 @keyframes wOverlayIn  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes wOverlayOut { from { opacity: 1; } to { opacity: 0; } }
 
-/* destination container distort on exit */
-#destination-container.warp-out {
+/* ── BLACK HOLE — classic implosion to singularity ──────────────── */
+#destination-container.warp-out-blackhole {
   animation: destSuck 0.75s ease-in forwards;
 }
 @keyframes destSuck {
-  0%   { transform: scale(1)    ; filter: blur(0px)   brightness(1); }
-  60%  { transform: scale(1.04) ; filter: blur(1px)   brightness(1.4); }
-  100% { transform: scale(0.02) ; filter: blur(18px)  brightness(3); }
+  0%   { transform: scale(1);    filter: blur(0px)  brightness(1); }
+  60%  { transform: scale(1.04); filter: blur(1px)  brightness(1.4); }
+  100% { transform: scale(0.02); filter: blur(18px) brightness(3); }
 }
 
-/* ── Warp canvas (static/noise) ─────────────────────────────────── */
+/* ── COLLAPSE — TV-off: squish to horizontal line then vanish ────── */
+#destination-container.warp-out-collapse {
+  animation: destCollapse 0.92s cubic-bezier(0.4,0,1,1) forwards;
+  transform-origin: center center;
+}
+@keyframes destCollapse {
+  0%   { transform: scaleY(1)    scaleX(1);    filter: blur(0px)  brightness(1); }
+  45%  { transform: scaleY(0.04) scaleX(1.02); filter: blur(0px)  brightness(2); }
+  70%  { transform: scaleY(0.02) scaleX(1.1);  filter: blur(2px)  brightness(3); }
+  100% { transform: scaleY(0)    scaleX(0);    filter: blur(10px) brightness(4); }
+}
+
+/* ── GLITCH — screen tears / RGB-split thrash ───────────────────── */
+#destination-container.warp-out-glitch {
+  animation: destGlitch 0.80s steps(1) forwards;
+}
+@keyframes destGlitch {
+  0%   { transform: translate(0,0)   skewX(0deg);  filter: hue-rotate(0deg)   saturate(1); }
+  10%  { transform: translate(-4px,0) skewX(-2deg); filter: hue-rotate(90deg)  saturate(3); }
+  20%  { transform: translate(6px,0)  skewX(3deg);  filter: hue-rotate(180deg) saturate(4) brightness(1.5); }
+  30%  { transform: translate(-8px,2px) skewX(-4deg); filter: hue-rotate(270deg) saturate(5); }
+  40%  { transform: translate(4px,-2px) skewX(2deg); filter: hue-rotate(0deg)   saturate(3) brightness(1.8); }
+  55%  { transform: translate(-6px,0) skewX(-1deg); filter: hue-rotate(120deg) saturate(6) blur(1px); }
+  70%  { transform: translate(10px,0)  skewX(5deg);  filter: hue-rotate(240deg) saturate(8) blur(3px); }
+  85%  { transform: translate(0,0)     skewX(0deg);  filter: hue-rotate(0deg)   saturate(1) blur(6px) brightness(2); }
+  100% { transform: scale(0.98);                     filter: blur(12px) brightness(0.2); }
+}
+
+/* ── Overlay fade helpers ───────────────────────────────────────── */
+#warp-overlay.warp-fade-slow {
+  animation: wOverlayIn 0.65s ease-in forwards;
+}
+
+/* ── Warp canvas (static/noise/letters/glitch) ──────────────────── */
 #warp-canvas {
   position: fixed;
   inset: 0;
   z-index: 9999;
   display: none;
-  mix-blend-mode: overlay;
-  opacity: 0.65;
+  opacity: 0.72;
   pointer-events: none;
 }
