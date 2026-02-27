@@ -21,6 +21,7 @@ import win95_1995   from './win95-1995.js';
 import beos1997     from './beos-1997.js';
 import kde1999      from './kde1-1999.js';
 import osx2001      from './osx-2001.js';
+import maxheadroom1987 from './maxheadroom-1987.js';
 
 export const destinations = [
   xerox1973,
@@ -29,6 +30,7 @@ export const destinations = [
   mac1984,
   dos1985,
   amiga1985,
+  maxheadroom1987,
   nextstep1989,
   win95_1995,
   beos1997,
