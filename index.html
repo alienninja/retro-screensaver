@@ -158,6 +158,10 @@
             <div class="ic">🌐</div>
             <span>Internet</span>
         </div>
+        <div class="di" ondblclick="toggleDesktopNote(true)">
+            <div class="ic">📝</div>
+            <span>Readme.txt</span>
+        </div>
     </div>
 
     <!-- Display Properties -->
@@ -572,6 +576,44 @@
             <div style="display:flex;gap:8px;margin-top:12px;">
                 <button class="btn" style="flex:1;background:#aa0011;color:#fff;border-color:#ff4444;font-weight:bold;" onclick="window.open('screensavers/portal/','_self')">🌀 Warp to OS Portal</button>
                 <button class="btn" style="background:#222;color:#aaa;" onclick="closeGatekeeper()">Disconnect</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop Sticky Note (Real Visitor Log & Hit Counter) -->
+    <div id="desktop-note" class="desktop-note" style="top:45px;right:40px;">
+        <div class="note-pin" id="note-pin-handle" title="Drag to move note">📌</div>
+        <div class="note-header" id="note-header">
+            <span class="note-title">📝 Readme.txt</span>
+            <button class="note-close" onclick="toggleDesktopNote(false)" title="Close note">✕</button>
+        </div>
+        <div class="note-body">
+            <div class="note-heading">★ WELCOME VISITOR! ★</div>
+            <div class="note-line">You are REAL global visitor:</div>
+            
+            <div class="note-counter-box">
+                <div class="note-counter-digits" id="note-counter-digits">
+                    <span class="nc-digit">0</span><span class="nc-digit">0</span><span class="nc-digit">4</span><span class="nc-digit">2</span><span class="nc-digit">1</span><span class="nc-digit">9</span><span class="nc-digit">8</span>
+                </div>
+            </div>
+
+            <div class="note-text">
+                • Real-time live hit counter from cyberspace<br>
+                • Best viewed in 800x600, 16-bit High Color<br>
+                • Turn speakers ON for Web Audio effects!<br>
+                • 14 retro screensavers + Win 3.1 & OS Portal<br>
+                • Don't forget to bookmark! (Ctrl+D) ✍️
+            </div>
+
+            <div class="note-badges">
+                <span class="note-badge nb-netscape">Netscape 4.0</span>
+                <span class="note-badge nb-notepad">Notepad</span>
+                <span class="note-badge nb-const">🚧 Under Construction</span>
+            </div>
+            
+            <div class="note-footer">
+                <span id="note-sync-status">● Live Sync Active</span>
+                <span style="cursor:pointer;text-decoration:underline;" onclick="fetchRealVisitorCount()">[Refresh]</span>
             </div>
         </div>
     </div>

@@ -294,13 +294,16 @@ function toggleWinVisibility(id) {
 
 // ── Drag / Resize ────────────────────────────────────────
 function makeDraggable(el, handle) {
+    if (typeof el === 'string') el = document.getElementById(el);
+    if (typeof handle === 'string') handle = document.getElementById(handle);
+    if (!el || !handle) return;
     let drag = false, ox = 0, oy = 0;
     handle.addEventListener('mousedown', e => {
         if (e.target.closest('button')) return;
         drag = true;
         ox = e.clientX - el.offsetLeft;
         oy = e.clientY - el.offsetTop;
-        bringToFront(el);
+        if (typeof bringToFront === 'function') bringToFront(el);
         e.preventDefault();
     });
     document.addEventListener('mousemove', e => {
@@ -1996,28 +1999,91 @@ function closeGatekeeper() {
 }
 window.closeGatekeeper = closeGatekeeper;
 
-// ── 90s Web Hit Visitor Counter ──
-function initWebCounter() {
-    try {
-        let count = parseInt(localStorage.getItem('retro_visitor_count') || '0', 10);
-        if (!count || count < 42000) {
-            count = 42198;
-        }
-        count++;
-        localStorage.setItem('retro_visitor_count', count.toString());
+// ── 90s Real Global Web Hit Counter & Desktop Sticky Note ──
+const BASE_HIT_OFFSET = 42198;
 
-        const str = count.toString().padStart(7, '0');
-        const digitsEl = document.getElementById('wc-digits');
-        if (digitsEl) {
-            digitsEl.innerHTML = '';
-            for (const ch of str) {
-                const s = document.createElement('span');
-                s.className = 'wc-digit';
-                s.textContent = ch;
-                digitsEl.appendChild(s);
+function renderDigits(containerId, count, digitClass) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const str = count.toString().padStart(7, '0');
+    el.innerHTML = '';
+    for (const ch of str) {
+        const s = document.createElement('span');
+        s.className = digitClass;
+        s.textContent = ch;
+        el.appendChild(s);
+    }
+}
+
+async function fetchRealVisitorCount() {
+    const syncStatusEl = document.getElementById('note-sync-status');
+    if (syncStatusEl) syncStatusEl.textContent = '● Contacting Cyberspace...';
+
+    let liveTotal = null;
+    try {
+        const res = await fetch('https://countapi.mileshilliard.com/api/v1/hit/retro-screensaver-bithash', {
+            cache: 'no-cache'
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data && typeof data.value === 'number') {
+                liveTotal = BASE_HIT_OFFSET + data.value;
+                if (syncStatusEl) syncStatusEl.textContent = '● Global Live Hits Active';
             }
         }
-    } catch (e) {}
+    } catch (e) {
+        // Network offline, CSP blocked, or API unavailable
+    }
+
+    if (!liveTotal) {
+        let stored = parseInt(localStorage.getItem('retro_visitor_count') || '0', 10);
+        if (!stored || stored < BASE_HIT_OFFSET) stored = BASE_HIT_OFFSET;
+        stored++;
+        liveTotal = stored;
+        if (syncStatusEl) syncStatusEl.textContent = '● Local Cache Active';
+    }
+
+    localStorage.setItem('retro_visitor_count', liveTotal.toString());
+    renderDigits('wc-digits', liveTotal, 'wc-digit');
+    renderDigits('note-counter-digits', liveTotal, 'nc-digit');
+}
+window.fetchRealVisitorCount = fetchRealVisitorCount;
+
+function toggleDesktopNote(show) {
+    const note = document.getElementById('desktop-note');
+    if (!note) return;
+    if (show === undefined) {
+        note.classList.toggle('hidden');
+    } else if (show) {
+        note.classList.remove('hidden');
+        if (window.RetroAudio) RetroAudio.playDing();
+    } else {
+        note.classList.add('hidden');
+    }
+    const isHidden = note.classList.contains('hidden');
+    localStorage.setItem('retro_note_visible', isHidden ? 'false' : 'true');
+}
+window.toggleDesktopNote = toggleDesktopNote;
+
+function initWebCounter() {
+    const note = document.getElementById('desktop-note');
+    if (note) {
+        const savedVis = localStorage.getItem('retro_note_visible');
+        if (savedVis === 'false') {
+            note.classList.add('hidden');
+        }
+        makeDraggable(note, document.getElementById('note-header'));
+        makeDraggable(note, document.getElementById('note-pin-handle'));
+    }
+
+    // Immediately display cached count, then asynchronously fetch live count
+    const cached = parseInt(localStorage.getItem('retro_visitor_count') || BASE_HIT_OFFSET.toString(), 10);
+    renderDigits('wc-digits', cached, 'wc-digit');
+    renderDigits('note-counter-digits', cached, 'nc-digit');
+
+    // Fetch real global hit from API
+    fetchRealVisitorCount();
 }
 window.initWebCounter = initWebCounter;
+
 
