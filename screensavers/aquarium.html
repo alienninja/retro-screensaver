@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aquarium Screensaver — 90s Retro Edition</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #001025; overflow: hidden; width: 100vw; height: 100vh; }
+        canvas { display: block; width: 100%; height: 100%; }
+        .back-link { position: fixed; top: 8px; left: 8px; z-index: 999; font: 12px Tahoma, Arial, sans-serif; color: rgba(255,255,255,0.4); text-decoration: none; padding: 4px 8px; }
+        .back-link:hover { color: rgba(255,255,255,0.9); }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link">← retro.bithash.cc</a>
+    <canvas id="c"></canvas>
+
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+
+        let cfg = { numFish: 12, speed: 1.2, bubbleCount: 30 };
+
+        window.addEventListener('message', e => {
+            if (e.origin !== 'null' && e.origin !== location.origin) return;
+            if (e.data && e.data.cfg) Object.assign(cfg, e.data.cfg);
+        });
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Fish Species and Palettes
+        const SPECIES = [
+            { body: '#ff6600', stripe: '#ffffff', fin: '#ffffff', name: 'clownfish', hRatio: 0.6 },
+            { body: '#0088ff', stripe: '#ffff00', fin: '#0055cc', name: 'blue-tang', hRatio: 0.5 },
+            { body: '#ffcc00', stripe: '#111111', fin: '#ff9900', name: 'angelfish', hRatio: 0.8 },
+            { body: '#ff3366', stripe: '#ff99cc', fin: '#cc0033', name: 'coral-beauty', hRatio: 0.45 }
+        ];
+
+        class Fish {
+            constructor() { this.reset(true); }
+            reset(initial = false) {
+                this.dir = Math.random() < 0.5 ? 1 : -1;
+                this.x = initial ? Math.random() * canvas.width : (this.dir === 1 ? -80 : canvas.width + 80);
+                this.y = 80 + Math.random() * (canvas.height - 180);
+                this.spd = (0.8 + Math.random() * 1.4) * this.dir;
+                this.scale = 0.7 + Math.random() * 0.6;
+                this.spec = SPECIES[Math.floor(Math.random() * SPECIES.length)];
+                this.tailPhase = Math.random() * Math.PI * 2;
+                this.wiggleFreq = 0.12 + Math.random() * 0.08;
+            }
+            update(speedMul) {
+                this.x += this.spd * speedMul;
+                this.tailPhase += this.wiggleFreq * speedMul;
+                this.y += Math.sin(this.x * 0.015) * 0.4;
+
+                if ((this.dir === 1 && this.x > canvas.width + 100) ||
+                    (this.dir === -1 && this.x < -100)) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.scale(this.dir * this.scale, this.scale);
+
+                const tailWag = Math.sin(this.tailPhase) * 6;
+
+                // Tail Fin
+                ctx.fillStyle = this.spec.fin;
+                ctx.beginPath();
+                ctx.moveTo(-28, 0);
+                ctx.lineTo(-44, -14 + tailWag);
+                ctx.lineTo(-40, tailWag * 0.5);
+                ctx.lineTo(-44, 14 + tailWag);
+                ctx.closePath();
+                ctx.fill();
+
+                // Main Body
+                ctx.fillStyle = this.spec.body;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 32, 20 * this.spec.hRatio, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Decorative Stripes
+                ctx.fillStyle = this.spec.stripe;
+                ctx.beginPath();
+                ctx.ellipse(-6, 0, 5, 18 * this.spec.hRatio, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.ellipse(8, 0, 4, 15 * this.spec.hRatio, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(20, -4, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(21, -4, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Dorsal fin
+                ctx.fillStyle = this.spec.fin;
+                ctx.beginPath();
+                ctx.moveTo(-10, -16 * this.spec.hRatio);
+                ctx.lineTo(8, -26 * this.spec.hRatio);
+                ctx.lineTo(16, -10 * this.spec.hRatio);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        class Bubble {
+            constructor() { this.reset(true); }
+            reset(initial = false) {
+                // Emitters clustered at bottom (e.g. at 25% and 75% width)
+                const emitterX = Math.random() < 0.5 ? canvas.width * 0.25 : canvas.width * 0.75;
+                this.x = emitterX + (Math.random() - 0.5) * 40;
+                this.y = initial ? Math.random() * canvas.height : canvas.height + 10;
+                this.r = 2 + Math.random() * 5;
+                this.spd = 1.2 + Math.random() * 2.0;
+                this.wobble = Math.random() * Math.PI * 2;
+            }
+            update(speedMul) {
+                this.y -= this.spd * speedMul;
+                this.wobble += 0.05;
+                this.x += Math.sin(this.wobble) * 0.6;
+                if (this.y < -10) this.reset();
+            }
+            draw() {
+                ctx.strokeStyle = 'rgba(200, 240, 255, 0.65)';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Highlight dot
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(this.x - this.r * 0.3, this.y - this.r * 0.3, this.r * 0.25, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        const fishes = Array.from({ length: cfg.numFish }, () => new Fish());
+        const bubbles = Array.from({ length: cfg.bubbleCount }, () => new Bubble());
+
+        let tick = 0;
+
+        function drawSeaweed(x, height, phase) {
+            ctx.fillStyle = '#107020';
+            ctx.strokeStyle = '#188528';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(x, canvas.height);
+
+            const segments = 6;
+            const segH = height / segments;
+            for (let i = 1; i <= segments; i++) {
+                const sway = Math.sin(tick * 0.03 + phase + i * 0.5) * (i * 3.5);
+                ctx.lineTo(x + sway, canvas.height - i * segH);
+            }
+            ctx.stroke();
+        }
+
+        function loop() {
+            tick++;
+
+            // Deep ocean gradient background
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, '#00264d');
+            grad.addColorStop(0.4, '#001833');
+            grad.addColorStop(1, '#000814');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Water Caustics / light rays from above
+            ctx.save();
+            ctx.globalAlpha = 0.06;
+            ctx.fillStyle = '#66ccff';
+            for (let i = 0; i < 5; i++) {
+                const rayX = (canvas.width * 0.2 * i) + Math.sin(tick * 0.01 + i) * 60;
+                ctx.beginPath();
+                ctx.moveTo(rayX, 0);
+                ctx.lineTo(rayX + 120, canvas.height);
+                ctx.lineTo(rayX + 40, canvas.height);
+                ctx.lineTo(rayX - 40, 0);
+                ctx.fill();
+            }
+            ctx.restore();
+
+            // Sandy bottom
+            ctx.fillStyle = '#c2a649';
+            ctx.fillRect(0, canvas.height - 35, canvas.width, 35);
+            ctx.fillStyle = '#9e8432';
+            ctx.fillRect(0, canvas.height - 8, canvas.width, 8);
+
+            // Seaweed plants
+            for (let x = 30; x < canvas.width; x += 70) {
+                drawSeaweed(x, 120 + Math.sin(x) * 40, x * 0.1);
+            }
+
+            // Bubbles
+            bubbles.forEach(b => { b.update(cfg.speed); b.draw(); });
+
+            // Fish
+            fishes.forEach(f => { f.update(cfg.speed); f.draw(); });
+
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>

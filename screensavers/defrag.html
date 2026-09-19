@@ -441,6 +441,11 @@
                 // Flash the source cyan block as yellow
                 highlightIdx = srcIdx;
                 drawBlock(srcIdx);
+                try {
+                    if (window.parent && window.parent.RetroAudio && Math.random() < 0.4) {
+                        window.parent.RetroAudio.playDefragSeek();
+                    }
+                } catch(e) {}
                 stepState = 'CLEAR_SRC';
 
             } else if (stepState === 'CLEAR_SRC') {

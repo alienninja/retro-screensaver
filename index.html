@@ -70,6 +70,18 @@
     <h1 class="sr-only">Windows 98 in Your Browser — Screensavers, Defrag, and More</h1>
     <p class="sr-only">Relive Windows 98 nostalgia with 9 authentic remakes running right in your browser: 3D Pipes, 3D Maze, Mystify Your Mind, Starfield, Matrix Rain, Bouncing DVD Logo, 3D Text, plus two disk defragmenter simulators. Built with HTML5 Canvas and WebGL — no download or plugins required.</p>
     <div id="icon-grid">
+        <div class="di" ondblclick="openMyComputer()">
+            <div class="ic">💻</div>
+            <span>My Computer</span>
+        </div>
+        <div class="di" ondblclick="launchSS('flying-windows')">
+            <div class="ic">🪟</div>
+            <span>Flying Windows</span>
+        </div>
+        <div class="di" ondblclick="launchSS('flying-toasters')">
+            <div class="ic">🍞</div>
+            <span>Flying Toasters</span>
+        </div>
         <div class="di" ondblclick="launchSS('pipes')">
             <div class="ic">🟥</div>
             <span>3D Pipes</span>
@@ -77,6 +89,10 @@
         <div class="di" ondblclick="launchSS('maze')">
             <div class="ic">🟦</div>
             <span>3D Maze</span>
+        </div>
+        <div class="di" ondblclick="launchSS('flowerbox')">
+            <div class="ic">💠</div>
+            <span>3D FlowerBox</span>
         </div>
         <div class="di" ondblclick="launchSS('mystify')">
             <div class="ic">🟣</div>
@@ -94,6 +110,14 @@
             <div class="ic">⚪</div>
             <span>Bouncing DVD</span>
         </div>
+        <div class="di" ondblclick="launchSS('aquarium')">
+            <div class="ic">🐠</div>
+            <span>Aquarium</span>
+        </div>
+        <div class="di" ondblclick="launchSS('bsod')">
+            <div class="ic">💀</div>
+            <span>BSOD</span>
+        </div>
         <div class="di" ondblclick="launchSS('text3d')">
             <div class="ic">🔤</div>
             <span>3D Text</span>
@@ -105,6 +129,14 @@
         <div class="di" ondblclick="launchSS('defrag-retro')">
             <div class="ic">🗂️</div>
             <span>Retro Defrag</span>
+        </div>
+        <div class="di" ondblclick="openNativeCalc()">
+            <div class="ic">🧮</div>
+            <span>Calculator</span>
+        </div>
+        <div class="di" ondblclick="openNativeNotepad()">
+            <div class="ic">📝</div>
+            <span>Notepad</span>
         </div>
         <div class="di" ondblclick="openDP()">
             <div class="ic">🖥️</div>
@@ -135,9 +167,43 @@
             <div class="wtb-btns"><button onclick="closeDP()">✕</button></div>
         </div>
         <div class="dtabs">
+            <div class="dtab" onclick="switchDPTab('bg')">Background</div>
             <div class="dtab active" onclick="switchDPTab('saver')">Screen Saver</div>
+            <div class="dtab" onclick="switchDPTab('appearance')">Appearance</div>
             <div class="dtab" onclick="switchDPTab('settings')">Settings</div>
             <div class="dtab" onclick="switchDPTab('energy')">Energy Saving</div>
+        </div>
+
+        <!-- Background tab -->
+        <div id="tab-bg" class="tabpanel dbody">
+            <div class="mon-wrap">
+                <div class="mon-out">
+                    <div class="mon-scr" style="width:200px;height:130px;position:relative;overflow:hidden;">
+                        <div id="wp-preview-box" class="wp-teal" style="width:100%;height:100%;background-size:cover;"></div>
+                    </div>
+                    <div class="mon-base"></div>
+                </div>
+            </div>
+            <div class="drow">
+                <label>Wallpaper:</label>
+                <select id="dp-wp-sel" class="sel" onchange="previewWallpaper(this.value)">
+                    <option value="wp-teal" selected>Teal (Default)</option>
+                    <option value="wp-clouds">Clouds</option>
+                    <option value="wp-setup">Windows 98 Setup</option>
+                    <option value="wp-forest">Forest</option>
+                    <option value="wp-thatch">Black Thatch</option>
+                    <option value="wp-rivets">Blue Rivets</option>
+                    <option value="wp-matrix">Matrix Grid</option>
+                </select>
+            </div>
+            <div class="drow">
+                <label>Display:</label>
+                <select id="dp-wp-mode" class="sel">
+                    <option>Stretch</option>
+                    <option>Tile</option>
+                    <option>Center</option>
+                </select>
+            </div>
         </div>
 
         <!-- Screen Saver tab -->
@@ -154,12 +220,17 @@
                 <label>Screen saver:</label>
                 <select id="ss-sel" class="sel" onchange="prevChange()">
                     <option value="">(None)</option>
+                    <option value="flying-windows">Flying Windows</option>
+                    <option value="flying-toasters">Flying Toasters</option>
                     <option value="pipes">3D Pipes</option>
                     <option value="maze">3D Maze</option>
+                    <option value="flowerbox">3D FlowerBox</option>
                     <option value="mystify">Mystify Your Mind</option>
                     <option value="starfield">Starfield</option>
                     <option value="matrix">Matrix Rain</option>
                     <option value="dvd">Bouncing DVD</option>
+                    <option value="aquarium">Underwater Aquarium</option>
+                    <option value="bsod">Blue Screen of Death (BSOD)</option>
                     <option value="text3d">3D Text</option>
                     <option value="defrag">Defrag 98</option>
                     <option value="defrag-retro">Retro Defrag</option>
@@ -177,6 +248,31 @@
             <div class="chk-row">
                 <input type="checkbox" id="dp-pwd">
                 <label for="dp-pwd">Password protected</label>
+            </div>
+        </div>
+
+        <!-- Appearance tab -->
+        <div id="tab-appearance" class="tabpanel dbody">
+            <div class="grpbox" style="margin-top:8px;">
+                <div class="grpbox-title">Color scheme</div>
+                <div class="drow">
+                    <label>Scheme:</label>
+                    <select id="dp-scheme-sel" class="sel" onchange="previewScheme(this.value)">
+                        <option value="standard" selected>Windows Standard</option>
+                        <option value="rainyday">Rainy Day</option>
+                        <option value="desert">Desert</option>
+                        <option value="eggplant">Eggplant</option>
+                        <option value="rose">Rose</option>
+                        <option value="highcontrast">High Contrast</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grpbox">
+                <div class="grpbox-title">Display effects</div>
+                <div class="chk-row">
+                    <input type="checkbox" id="dp-crt-toggle" onchange="toggleCRT(this.checked)">
+                    <label for="dp-crt-toggle">Enable CRT Scanline Filter &amp; Glow</label>
+                </div>
             </div>
         </div>
 
@@ -362,12 +458,95 @@
                 </div>
             </div>
         </div>
+    <!-- Run Dialog -->
+    <div id="run-dlg" class="dlg hidden" style="bottom:40px;left:20px;width:340px;">
+        <div class="wtb" id="run-tb">
+            <div class="wtb-l"><span>🏃‍♂️</span><span>Run</span></div>
+            <div class="wtb-btns"><button onclick="closeRun()">✕</button></div>
+        </div>
+        <div class="dbody" style="display:flex;gap:12px;padding:12px;">
+            <div style="font-size:32px;line-height:1;">🏃‍♂️</div>
+            <div style="flex:1;">
+                <p style="font-size:11px;margin-bottom:10px;">Type the name of a program, folder, or document, and Windows will open it for you.</p>
+                <div class="drow" style="margin-bottom:0;">
+                    <label style="min-width:40px;">Open:</label>
+                    <input type="text" id="run-input" class="inp" style="flex:1;" placeholder="e.g. calc, notepad, defrag">
+                </div>
+            </div>
+        </div>
         <div class="dfoot">
-            <button class="btn" id="donate-ok-btn" onclick="closeDonate()" disabled>Please wait...</button>
-            <button class="btn" id="donate-print-btn" class="hidden" onclick="fakePrint()" style="display:none;">Print Receipt</button>
+            <button class="btn" onclick="execRun()">OK</button>
+            <button class="btn" onclick="closeRun()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Shut Down Dialog -->
+    <div id="shutdown-dlg" class="dlg hidden" style="top:120px;left:50%;transform:translateX(-50%);width:320px;">
+        <div class="wtb" id="shutdown-tb">
+            <div class="wtb-l"><span>💻</span><span>Shut Down Windows</span></div>
+            <div class="wtb-btns"><button onclick="closeShutDown()">✕</button></div>
+        </div>
+        <div class="dbody" style="display:flex;gap:12px;padding:12px;">
+            <div style="font-size:32px;line-height:1;">💻</div>
+            <div style="flex:1;">
+                <p style="font-size:11px;margin-bottom:8px;font-weight:bold;">What do you want the computer to do?</p>
+                <div class="chk-row">
+                    <input type="radio" name="sd-action" id="sd-act-off" value="off" checked>
+                    <label for="sd-act-off">Shut down</label>
+                </div>
+                <div class="chk-row">
+                    <input type="radio" name="sd-action" id="sd-act-restart" value="restart">
+                    <label for="sd-act-restart">Restart</label>
+                </div>
+                <div class="chk-row">
+                    <input type="radio" name="sd-action" id="sd-act-dos" value="dos">
+                    <label for="sd-act-dos">Restart in MS-DOS mode</label>
+                </div>
+            </div>
+        </div>
+        <div class="dfoot">
+            <button class="btn" onclick="doShutDown()">OK</button>
+            <button class="btn" onclick="closeShutDown()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="ctx-desktop" class="ctx-menu hidden">
+        <div class="ctx-item" onclick="launchSS('flying-windows');closeCtx();"><span>Active Screensaver</span></div>
+        <div class="ctx-div"></div>
+        <div class="ctx-item" onclick="arrangeIcons();closeCtx();"><span>Arrange Icons</span></div>
+        <div class="ctx-item" onclick="location.reload();"><span>Refresh</span></div>
+        <div class="ctx-div"></div>
+        <div class="ctx-item" onclick="openNativeNotepad();closeCtx();"><span>New Text Document</span></div>
+        <div class="ctx-div"></div>
+        <div class="ctx-item" onclick="openDP();closeCtx();"><span><strong>Properties</strong></span></div>
+    </div>
+
+    <!-- Volume Popup -->
+    <div id="vol-popup" class="hidden">
+        <div style="font-size:10px;font-weight:bold;">Volume</div>
+        <input type="range" id="vol-slider" min="0" max="100" value="70" oninput="RetroAudio.setVolume(this.value/100)">
+        <div class="chk-row" style="margin:0;font-size:10px;">
+            <input type="checkbox" id="vol-mute-chk" onchange="RetroAudio.setMuted(this.checked)">
+            <label for="vol-mute-chk">Mute</label>
         </div>
     </div>
 </main>
+
+<!-- CRT Overlay -->
+<div id="crt-overlay" class="hidden"></div>
+
+<!-- Turn Off Computer Screen -->
+<div id="turnoff-screen" class="hidden">
+    <div>It's now safe to turn off your computer.</div>
+    <button onclick="restartWindows()">Restart Windows</button>
+</div>
+
+<!-- Alt-Tab Switcher -->
+<div id="alt-tab-dlg" class="hidden">
+    <div id="alt-tab-icons"></div>
+    <div id="alt-tab-title" style="font-size:12px;font-weight:bold;"></div>
+</div>
 
 <!-- TASKBAR -->
 <div id="taskbar">
@@ -378,7 +557,7 @@
     <div id="tbits"></div>
     <div class="tbtray">
         <span class="tray-icon" onclick="openDonate()" title="Support this project ☕">☕</span>
-        <span>🔊</span>
+        <span class="tray-icon" id="tray-vol-btn" onclick="toggleVolumeControl()" title="Volume">🔊</span>
         <div id="clock">12:00 PM</div>
     </div>
 </div>
@@ -387,62 +566,92 @@
 <div id="startmenu" class="hidden">
     <div class="sm-bar"><span>Windows 98</span></div>
     <div class="sm-items">
-        <div class="smi" onclick="launchSS('pipes');closeStart()">
-            <span class="smi-ic">🟥</span>
-            <div><strong>3D Pipes</strong><br><small>Growing pipe networks</small></div>
+        <div class="smi smi-parent">
+            <span class="smi-ic">📁</span>
+            <div><strong>Programs</strong></div>
+            <span class="smi-arrow">▶</span>
+            <div class="smi-sub">
+                <div class="smi smi-parent">
+                    <span class="smi-ic">🖥️</span>
+                    <div><strong>Screensavers</strong></div>
+                    <span class="smi-arrow">▶</span>
+                    <div class="smi-sub" style="max-height:360px;overflow-y:auto;">
+                        <div class="smi" onclick="launchSS('flying-windows');closeStart()"><span class="smi-ic">🪟</span><div>Flying Windows</div></div>
+                        <div class="smi" onclick="launchSS('flying-toasters');closeStart()"><span class="smi-ic">🍞</span><div>Flying Toasters</div></div>
+                        <div class="smi" onclick="launchSS('pipes');closeStart()"><span class="smi-ic">🟥</span><div>3D Pipes</div></div>
+                        <div class="smi" onclick="launchSS('maze');closeStart()"><span class="smi-ic">🟦</span><div>3D Maze</div></div>
+                        <div class="smi" onclick="launchSS('flowerbox');closeStart()"><span class="smi-ic">💠</span><div>3D FlowerBox</div></div>
+                        <div class="smi" onclick="launchSS('mystify');closeStart()"><span class="smi-ic">🟣</span><div>Mystify</div></div>
+                        <div class="smi" onclick="launchSS('starfield');closeStart()"><span class="smi-ic">⭐</span><div>Starfield</div></div>
+                        <div class="smi" onclick="launchSS('matrix');closeStart()"><span class="smi-ic">🟩</span><div>Matrix Rain</div></div>
+                        <div class="smi" onclick="launchSS('dvd');closeStart()"><span class="smi-ic">⚪</span><div>Bouncing DVD</div></div>
+                        <div class="smi" onclick="launchSS('aquarium');closeStart()"><span class="smi-ic">🐠</span><div>Aquarium</div></div>
+                        <div class="smi" onclick="launchSS('bsod');closeStart()"><span class="smi-ic">💀</span><div>BSOD</div></div>
+                        <div class="smi" onclick="launchSS('text3d');closeStart()"><span class="smi-ic">🔤</span><div>3D Text</div></div>
+                        <div class="smi" onclick="launchSS('defrag');closeStart()"><span class="smi-ic">📀</span><div>Defrag 98</div></div>
+                        <div class="smi" onclick="launchSS('defrag-retro');closeStart()"><span class="smi-ic">🗂️</span><div>Retro Defrag</div></div>
+                    </div>
+                </div>
+                <div class="smi smi-parent">
+                    <span class="smi-ic">🧰</span>
+                    <div><strong>Accessories</strong></div>
+                    <span class="smi-arrow">▶</span>
+                    <div class="smi-sub">
+                        <div class="smi" onclick="openNativeCalc();closeStart()"><span class="smi-ic">🧮</span><div>Calculator</div></div>
+                        <div class="smi" onclick="openNativeNotepad();closeStart()"><span class="smi-ic">📝</span><div>Notepad</div></div>
+                        <div class="smi" onclick="launchBrowser();closeStart()"><span class="smi-ic">🌐</span><div>Internet Explorer</div></div>
+                    </div>
+                </div>
+                <div class="smi" onclick="window.open('screensavers/win31/','_self');closeStart()">
+                    <span class="smi-ic">🪟</span>
+                    <div>Windows 3.1</div>
+                </div>
+                <div class="smi" onclick="window.open('screensavers/portal/','_self');closeStart()">
+                    <span class="smi-ic blackhole-ic">🕳️</span>
+                    <div>OS Time Portal</div>
+                </div>
+            </div>
         </div>
-        <div class="smi" onclick="launchSS('maze');closeStart()">
-            <span class="smi-ic">🟦</span>
-            <div><strong>3D Maze</strong><br><small>First-person maze walk</small></div>
-        </div>
-        <div class="smi" onclick="launchSS('mystify');closeStart()">
-            <span class="smi-ic">🟣</span>
-            <div><strong>Mystify Your Mind</strong><br><small>Hypnotic polygons</small></div>
-        </div>
-        <div class="smi" onclick="launchSS('starfield');closeStart()">
+        <div class="smi smi-parent">
             <span class="smi-ic">⭐</span>
-            <div><strong>Starfield</strong><br><small>Warp through stars</small></div>
+            <div><strong>Favorites</strong></div>
+            <span class="smi-arrow">▶</span>
+            <div class="smi-sub">
+                <div class="smi" onclick="launchBrowser();closeStart()"><span class="smi-ic">🌐</span><div>retro.bithash.cc</div></div>
+                <div class="smi" onclick="window.open('screensavers/win31/','_self');closeStart()"><span class="smi-ic">🪟</span><div>Windows 3.1 MDI</div></div>
+                <div class="smi" onclick="window.open('screensavers/portal/','_self');closeStart()"><span class="smi-ic">🕳️</span><div>OS Portal Maze</div></div>
+            </div>
         </div>
-        <div class="smi" onclick="launchSS('matrix');closeStart()">
-            <span class="smi-ic">🟩</span>
-            <div><strong>Matrix Rain</strong><br><small>Digital katakana rain</small></div>
+        <div class="smi smi-parent">
+            <span class="smi-ic">⚙️</span>
+            <div><strong>Settings</strong></div>
+            <span class="smi-arrow">▶</span>
+            <div class="smi-sub">
+                <div class="smi" onclick="openDP();closeStart()"><span class="smi-ic">🖥️</span><div>Display Properties</div></div>
+                <div class="smi" onclick="toggleVolumeControl();closeStart()"><span class="smi-ic">🔊</span><div>Audio Control</div></div>
+            </div>
         </div>
-        <div class="smi" onclick="launchSS('dvd');closeStart()">
-            <span class="smi-ic">⚪</span>
-            <div><strong>Bouncing DVD</strong><br><small>Will it hit the corner?</small></div>
+        <div class="smi" onclick="openAbout();closeStart()">
+            <span class="smi-ic">ℹ️</span>
+            <div><strong>Help &amp; About</strong></div>
         </div>
-        <div class="smi" onclick="launchSS('text3d');closeStart()">
-            <span class="smi-ic">🔤</span>
-            <div><strong>3D Text</strong><br><small>Retro text screensaver</small></div>
-        </div>
-        <div class="smi" onclick="launchSS('defrag');closeStart()">
-            <span class="smi-ic">📀</span>
-            <div><strong>Defrag 98</strong><br><small>Authentic Win98 defrag</small></div>
-        </div>
-        <div class="smi" onclick="launchSS('defrag-retro');closeStart()">
-            <span class="smi-ic">🗂️</span>
-            <div><strong>Retro Defrag</strong><br><small>DOS-era Norton style</small></div>
+        <div class="smi" onclick="openRun();closeStart()">
+            <span class="smi-ic">🏃‍♂️</span>
+            <div><strong>Run...</strong></div>
         </div>
         <div class="sm-div"></div>
-        <div class="smi" onclick="openDP();closeStart()">
-            <span class="smi-ic">🖥️</span>
-            <div><strong>Display Properties</strong></div>
-        </div>
-        <div class="smi" onclick="window.open('screensavers/win31/','_self');closeStart()">
-            <span class="smi-ic">🪟</span>
-            <div><strong>Windows 3.1</strong><br><small>Travel back to 1992</small></div>
-        </div>
-        <div class="smi" onclick="window.open('screensavers/portal/','_self');closeStart()">
-            <span class="smi-ic blackhole-ic">🕳️</span>
-            <div><strong>???</strong><br><small>You probably shouldn't click this</small></div>
-        </div>
         <div class="smi" onclick="openDonate();closeStart()">
             <span class="smi-ic">☕</span>
-            <div><strong>Buy Me a Coffee</strong><br><small>Support this project</small></div>
+            <div><strong>Tip Jar</strong><br><small>Support this project</small></div>
+        </div>
+        <div class="smi" onclick="openShutDown();closeStart()">
+            <span class="smi-ic">💻</span>
+            <div><strong>Shut Down...</strong></div>
         </div>
     </div>
 </div>
 
+<script src="js/audio.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

@@ -13,20 +13,23 @@
 import xerox1973    from './xerox-1973.js';
 import unix1975     from './unix-1975.js';
 import apple21979   from './apple2-1979.js';
+import c64_1982     from './c64-1982.js';
 import mac1984      from './mac-1984.js';
 import dos1985      from './dos-1985.js';
 import amiga1985    from './amiga-1985.js';
+import maxheadroom1987 from './maxheadroom-1987.js';
 import nextstep1989 from './nextstep-1989.js';
 import win95_1995   from './win95-1995.js';
 import beos1997     from './beos-1997.js';
 import kde1999      from './kde1-1999.js';
 import osx2001      from './osx-2001.js';
-import maxheadroom1987 from './maxheadroom-1987.js';
+import winxp_2001   from './winxp-2001.js';
 
 export const destinations = [
   xerox1973,
   unix1975,
   apple21979,
+  c64_1982,
   mac1984,
   dos1985,
   amiga1985,
@@ -36,4 +39,5 @@ export const destinations = [
   beos1997,
   kde1999,
   osx2001,
+  winxp_2001,
 ];

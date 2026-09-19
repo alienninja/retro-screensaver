@@ -176,6 +176,13 @@
                 corners++;
                 cnt.textContent = corners;
                 flash();
+                try {
+                    if (window.parent && window.parent.RetroAudio) window.parent.RetroAudio.playDvdHit();
+                } catch(e) {}
+            } else if (hitX || hitY) {
+                try {
+                    if (window.parent && window.parent.RetroAudio) window.parent.RetroAudio.playClick();
+                } catch(e) {}
             }
 
             requestAnimationFrame(frame);

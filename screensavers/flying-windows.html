@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flying Windows Screensaver — Windows 98 Edition</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
+        canvas { display: block; width: 100%; height: 100%; }
+        .back-link { position: fixed; top: 8px; left: 8px; z-index: 999; font: 12px Tahoma, Arial, sans-serif; color: rgba(255,255,255,0.4); text-decoration: none; padding: 4px 8px; }
+        .back-link:hover { color: rgba(255,255,255,0.9); }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link">← retro.bithash.cc</a>
+    <canvas id="c"></canvas>
+
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+
+        let cfg = { numLogos: 45, speed: 2.5, starCount: 150 };
+
+        window.addEventListener('message', e => {
+            if (e.origin !== 'null' && e.origin !== location.origin) return;
+            if (e.data && e.data.cfg) Object.assign(cfg, e.data.cfg);
+        });
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Star {
+            constructor() { this.reset(true); }
+            reset(randomZ = false) {
+                this.x = (Math.random() - 0.5) * canvas.width * 2;
+                this.y = (Math.random() - 0.5) * canvas.height * 2;
+                this.z = randomZ ? Math.random() * 1000 : 1000;
+                this.pz = this.z;
+            }
+            update(spd) {
+                this.pz = this.z;
+                this.z -= spd * 1.5;
+                if (this.z <= 0) this.reset();
+            }
+            draw() {
+                const cx = canvas.width / 2, cy = canvas.height / 2;
+                const sx = (this.x / this.z) * 400 + cx;
+                const sy = (this.y / this.z) * 400 + cy;
+                const px = (this.x / this.pz) * 400 + cx;
+                const py = (this.y / this.pz) * 400 + cy;
+                if (sx < 0 || sx > canvas.width || sy < 0 || sy > canvas.height) return;
+
+                const brightness = Math.min(255, Math.floor((1 - this.z / 1000) * 255));
+                ctx.strokeStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
+                ctx.lineWidth = Math.max(0.5, (1 - this.z / 1000) * 2);
+                ctx.beginPath();
+                ctx.moveTo(px, py);
+                ctx.lineTo(sx, sy);
+                ctx.stroke();
+            }
+        }
+
+        class FlyingLogo {
+            constructor() { this.reset(true); }
+            reset(randomZ = false) {
+                this.x = (Math.random() - 0.5) * canvas.width * 2.5;
+                this.y = (Math.random() - 0.5) * canvas.height * 2.5;
+                this.z = randomZ ? Math.random() * 1000 : 1000;
+                this.rotation = (Math.random() - 0.5) * 0.4;
+                this.waveOffset = Math.random() * Math.PI * 2;
+            }
+            update(spd) {
+                this.z -= spd * 1.8;
+                if (this.z <= 10) this.reset();
+            }
+            draw() {
+                const cx = canvas.width / 2, cy = canvas.height / 2;
+                const scale = 400 / this.z;
+                const sx = this.x * scale + cx;
+                const sy = this.y * scale + cy;
+
+                const size = 38 * scale;
+                if (sx < -size || sx > canvas.width + size || sy < -size || sy > canvas.height + size) return;
+
+                const alpha = Math.min(1, Math.max(0.05, (1 - this.z / 1100)));
+
+                ctx.save();
+                ctx.translate(sx, sy);
+                ctx.rotate(this.rotation + Math.sin(Date.now() * 0.003 + this.waveOffset) * 0.15);
+                ctx.globalAlpha = alpha;
+
+                // Authentic 4-color Windows Flag (Red, Green, Blue, Yellow)
+                const s2 = size / 2;
+                const gap = size * 0.08;
+
+                // Red (Top Left)
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath();
+                ctx.rect(-s2, -s2, s2 - gap, s2 - gap);
+                ctx.fill();
+
+                // Green (Top Right)
+                ctx.fillStyle = '#00aa00';
+                ctx.beginPath();
+                ctx.rect(gap, -s2, s2 - gap, s2 - gap);
+                ctx.fill();
+
+                // Blue (Bottom Left)
+                ctx.fillStyle = '#0055ff';
+                ctx.beginPath();
+                ctx.rect(-s2, gap, s2 - gap, s2 - gap);
+                ctx.fill();
+
+                // Yellow (Bottom Right)
+                ctx.fillStyle = '#ffcc00';
+                ctx.beginPath();
+                ctx.rect(gap, gap, s2 - gap, s2 - gap);
+                ctx.fill();
+
+                // Black center outline
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = Math.max(0.8, scale * 1.2);
+                ctx.strokeRect(-s2, -s2, size, size);
+
+                ctx.restore();
+            }
+        }
+
+        const stars = Array.from({ length: 160 }, () => new Star());
+        const logos = Array.from({ length: cfg.numLogos }, () => new FlyingLogo());
+
+        function loop() {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            stars.forEach(s => { s.update(cfg.speed); s.draw(); });
+            logos.forEach(l => { l.update(cfg.speed); l.draw(); });
+
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>

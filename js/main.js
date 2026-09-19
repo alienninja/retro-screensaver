@@ -8,12 +8,17 @@ const APP_BUILD = '1998.02.22'; // ;)
 // SCREENSAVER METADATA
 // ============================================================
 const SS_META = {
+    'flying-windows': { title: 'Flying Windows', icon: '🪟' },
+    'flying-toasters': { title: 'Flying Toasters', icon: '🍞' },
     pipes: { title: '3D Pipes', icon: '🟥' },
     maze: { title: '3D Maze', icon: '🟦' },
+    flowerbox: { title: '3D FlowerBox', icon: '💠' },
     mystify: { title: 'Mystify Your Mind', icon: '🟣' },
     starfield: { title: 'Starfield', icon: '⭐' },
     matrix: { title: 'Matrix Rain', icon: '🟩' },
     dvd: { title: 'Bouncing DVD', icon: '⚪' },
+    aquarium: { title: 'Aquarium', icon: '🐠' },
+    bsod: { title: 'BSOD', icon: '💀' },
     text3d: { title: '3D Text', icon: '🔤' },
     defrag: { title: 'Defrag 98', icon: '📀' },
     'defrag-retro': { title: 'Retro Defrag', icon: '🗂️' }
@@ -21,12 +26,17 @@ const SS_META = {
 
 // Per-screensaver configurable settings
 const SS_CFG = {
+    'flying-windows': { numLogos: 45, speed: 2.5 },
+    'flying-toasters': { numToasters: 14, speed: 1.6 },
     pipes: { numPipes: 5 },
     maze: { moveSpeed: 0.014, turnSpeed: 0.045, speed: 1.0 },
+    flowerbox: { speed: 1.2, complexity: 6 },
     mystify: { numPolys: 2, sides: 4, speed: 1.8, trailLen: 16 },
     starfield: { numStars: 350, speed: 2.0 },
     matrix: { fontSize: 16, speed: 0.35, color: '#00ff41', density: 1.0 },
     dvd: { speed: 1.8 },
+    aquarium: { numFish: 12, speed: 1.2 },
+    bsod: { speed: 1.0 },
     text3d: { 
         type: 'text', // 'text' or 'time'
         rotationStyle: 'tumble', 
@@ -138,7 +148,11 @@ function loadSSIntoWindow(id, ssKey) {
     windows[id].ssKey = ssKey;
 }
 
-const CYCLE = ['pipes', 'maze', 'mystify', 'starfield', 'matrix', 'dvd', 'text3d', 'defrag', 'defrag-retro'];
+const CYCLE = [
+    'flying-windows', 'flying-toasters', 'pipes', 'maze', 'flowerbox',
+    'mystify', 'starfield', 'matrix', 'dvd', 'aquarium', 'bsod',
+    'text3d', 'defrag', 'defrag-retro'
+];
 
 function cycleWin(id, dir) {
     const w = windows[id];
@@ -340,12 +354,88 @@ document.addEventListener('click', e => {
     }
 });
 
+let altTabActive = false;
+let altTabIdx = 0;
+
 document.addEventListener('keydown', e => {
+    // Windows key or Ctrl+Escape -> toggle Start menu
+    if (e.key === 'Meta' || (e.ctrlKey && e.key === 'Escape')) {
+        e.preventDefault();
+        toggleStart();
+        return;
+    }
+
+    // Alt+F4 -> Close top window or open shutdown dialog
+    if (e.altKey && e.key === 'F4') {
+        e.preventDefault();
+        const wins = Object.values(windows).sort((a, b) => 
+            parseInt(a.el.style.zIndex) - parseInt(b.el.style.zIndex)
+        );
+        if (wins.length) {
+            closeWin(wins[wins.length - 1].id);
+        } else {
+            openShutDown();
+        }
+        return;
+    }
+
+    // Escape -> Close topmost window
     if (e.key === 'Escape') {
         const wins = Object.values(windows).sort((a, b) => 
             parseInt(a.el.style.zIndex) - parseInt(b.el.style.zIndex)
         );
         if (wins.length) closeWin(wins[wins.length - 1].id);
+        return;
+    }
+
+    // Alt+Tab window switcher
+    if (e.altKey && e.key === 'Tab') {
+        e.preventDefault();
+        const winList = Object.values(windows);
+        if (!winList.length) return;
+
+        const dlg = document.getElementById('alt-tab-dlg');
+        const iconsCont = document.getElementById('alt-tab-icons');
+        const titleCont = document.getElementById('alt-tab-title');
+        if (!dlg || !iconsCont || !titleCont) return;
+
+        if (!altTabActive) {
+            altTabActive = true;
+            altTabIdx = 0;
+            dlg.classList.remove('hidden');
+        }
+
+        altTabIdx = (altTabIdx + (e.shiftKey ? -1 : 1) + winList.length) % winList.length;
+
+        iconsCont.innerHTML = '';
+        winList.forEach((w, i) => {
+            const item = document.createElement('div');
+            item.className = 'alt-tab-item' + (i === altTabIdx ? ' active' : '');
+            const meta = SS_META[w.ssKey] || { icon: '💻', title: w.ssKey };
+            item.textContent = meta.icon;
+            iconsCont.appendChild(item);
+        });
+
+        const activeW = winList[altTabIdx];
+        const activeMeta = SS_META[activeW.ssKey] || { title: activeW.ssKey };
+        titleCont.textContent = activeMeta.title;
+    }
+});
+
+document.addEventListener('keyup', e => {
+    if (!e.altKey && altTabActive) {
+        altTabActive = false;
+        const dlg = document.getElementById('alt-tab-dlg');
+        if (dlg) dlg.classList.add('hidden');
+
+        const winList = Object.values(windows);
+        if (winList.length && winList[altTabIdx]) {
+            const targetWin = winList[altTabIdx];
+            if (targetWin.el.classList.contains('minimized')) {
+                toggleWinVisibility(targetWin.id);
+            }
+            bringToFront(targetWin.el);
+        }
     }
 });
 
@@ -389,10 +479,100 @@ function prevChange() {
 function switchDPTab(name) {
     document.querySelectorAll('.dtab').forEach((t, i) => t.classList.remove('active'));
     document.querySelectorAll('.tabpanel').forEach(p => p.classList.remove('active'));
-    const tabs = ['saver', 'settings', 'energy'];
+    const tabs = ['bg', 'saver', 'appearance', 'settings', 'energy'];
     const idx = tabs.indexOf(name);
     document.querySelectorAll('.dtab')[idx]?.classList.add('active');
     document.getElementById('tab-' + name)?.classList.add('active');
+}
+
+// ── Wallpapers & Color Themes ────────────────────────────
+const THEMES = {
+    standard: {
+        '--desktop-bg': '#008080',
+        '--silver': '#c0c0c0',
+        '--gray': '#808080',
+        '--navy': '#000080',
+        '--navy-light': '#1084d0',
+        '--title-text': '#ffffff'
+    },
+    rainyday: {
+        '--desktop-bg': '#708090',
+        '--silver': '#b0bec5',
+        '--gray': '#607d8b',
+        '--navy': '#37474f',
+        '--navy-light': '#546e7a',
+        '--title-text': '#ffffff'
+    },
+    desert: {
+        '--desktop-bg': '#c2b280',
+        '--silver': '#dcd0b8',
+        '--gray': '#9c8e70',
+        '--navy': '#8b4513',
+        '--navy-light': '#d2691e',
+        '--title-text': '#ffffff'
+    },
+    eggplant: {
+        '--desktop-bg': '#483d8b',
+        '--silver': '#c4b8d4',
+        '--gray': '#7b68ee',
+        '--navy': '#4b0082',
+        '--navy-light': '#800080',
+        '--title-text': '#ffffff'
+    },
+    rose: {
+        '--desktop-bg': '#9370db',
+        '--silver': '#dec4d6',
+        '--gray': '#b084a4',
+        '--navy': '#8b008b',
+        '--navy-light': '#c71585',
+        '--title-text': '#ffffff'
+    },
+    highcontrast: {
+        '--desktop-bg': '#000000',
+        '--silver': '#111111',
+        '--gray': '#555555',
+        '--navy': '#00ff00',
+        '--navy-light': '#00aa00',
+        '--title-text': '#000000'
+    }
+};
+
+let currentTheme = 'standard';
+let currentWallpaper = 'wp-teal';
+
+function previewWallpaper(wpClass) {
+    const box = document.getElementById('wp-preview-box');
+    if (box) box.className = wpClass;
+}
+
+function applyWallpaper(wpClass) {
+    currentWallpaper = wpClass;
+    const desktop = document.getElementById('desktop');
+    if (desktop) {
+        desktop.className = wpClass;
+    }
+    try { localStorage.setItem('retro_wallpaper', wpClass); } catch (e) {}
+}
+
+function previewScheme(scheme) {
+    applyTheme(scheme, false);
+}
+
+function applyTheme(scheme, persist = true) {
+    const theme = THEMES[scheme] || THEMES.standard;
+    currentTheme = scheme;
+    Object.entries(theme).forEach(([prop, val]) => {
+        document.documentElement.style.setProperty(prop, val);
+    });
+    if (persist) {
+        try { localStorage.setItem('retro_theme', scheme); } catch (e) {}
+    }
+}
+
+function toggleCRT(enabled) {
+    const el = document.getElementById('crt-overlay');
+    if (el) el.classList.toggle('hidden', !enabled);
+    try { localStorage.setItem('retro_crt', enabled ? 'true' : 'false'); } catch (e) {}
 }
 
 // FIX: dpPreview launches a new window (Preview button = "show me fullscreen")
@@ -406,6 +586,14 @@ function dpPreview() {
 function dpApply() {
     const v = document.getElementById('ss-sel').value;
     dpSelectedSS = v;
+    try { localStorage.setItem('retro_selected_ss', v); } catch (e) {}
+
+    // Apply wallpaper & scheme
+    const wp = document.getElementById('dp-wp-sel')?.value;
+    if (wp) applyWallpaper(wp);
+    const scheme = document.getElementById('dp-scheme-sel')?.value;
+    if (scheme) applyTheme(scheme, true);
+
     // Push current config to any running windows of this screensaver type
     if (v) {
         Object.values(windows).forEach(w => {
@@ -425,6 +613,13 @@ function dpOK() {
 
 // Settings dialog per screensaver
 const SS_SETTINGS_UI = {
+    'flying-windows': `<div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="1" max="6" step="0.5" value="2.5" style="width:120px"><span id="cfg-speed-val">2.5</span></div>`,
+    'flying-toasters': `<div class="drow"><label>Toasters:</label><input class="inp" id="cfg-numToasters" type="range" min="4" max="25" value="14" style="width:120px"><span id="cfg-numToasters-val">14</span></div>
+        <div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.5" max="4" step="0.2" value="1.6" style="width:120px"><span id="cfg-speed-val">1.6</span></div>`,
+    flowerbox: `<div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.5" max="3" step="0.1" value="1.2" style="width:120px"><span id="cfg-speed-val">1.2</span></div>`,
+    aquarium: `<div class="drow"><label>Fish count:</label><input class="inp" id="cfg-numFish" type="range" min="4" max="25" value="12" style="width:120px"><span id="cfg-numFish-val">12</span></div>
+        <div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.5" max="3" step="0.2" value="1.2" style="width:120px"><span id="cfg-speed-val">1.2</span></div>`,
+    bsod: `<div class="drow"><label>Options:</label><span style="font-size:11px;">Interactive crash screen. Press any key to reboot.</span></div>`,
     pipes: `<div class="drow"><label>Pipe count:</label><input class="inp" id="cfg-numPipes" type="range" min="1" max="12" value="5" style="width:120px"><span id="cfg-numPipes-val">5</span></div>`,
     mystify: `<div class="drow"><label>Polygons:</label><select class="sel" id="cfg-numPolys"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></div>
         <div class="drow"><label>Sides:</label><select class="sel" id="cfg-sides"><option value="3">3 (Triangle)</option><option value="4" selected>4 (Quad)</option><option value="5">5 (Pentagon)</option><option value="6">6 (Hexagon)</option></select></div>
@@ -545,6 +740,7 @@ document.getElementById('dp-pwd').addEventListener('change', function() {
 
 // ── About ───────────────────────────────────────────────
 function openAbout() {
+    if (window.RetroAudio) RetroAudio.playDing();
     closeAllMenus();
     document.getElementById('about-ver').textContent = APP_VERSION + ' (Build ' + APP_BUILD + ')';
     const a = document.getElementById('about');
@@ -625,6 +821,7 @@ function fakePrint() {
 
 // Reusable Win98-style error/info dialog
 function showError(title, msg, icon) {
+    if (window.RetroAudio) RetroAudio.playChord();
     const dlg = document.getElementById('err-dlg');
     document.getElementById('err-title').textContent = title || 'Error';
     document.getElementById('err-msg').innerHTML = msg || '';
@@ -634,7 +831,7 @@ function showError(title, msg, icon) {
 }
 
 // ── Make dialogs draggable ───────────────────────────────
-['dp-tb', 'about-tb', 'ssd-tb', 'err-tb'].forEach(tbId => {
+['dp-tb', 'about-tb', 'ssd-tb', 'err-tb', 'run-tb', 'shutdown-tb'].forEach(tbId => {
     const tb = document.getElementById(tbId);
     if (tb) makeDraggable(tb.parentElement, tb);
 });
@@ -687,6 +884,11 @@ function startPreview(id) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ({
+        'flying-windows': () => prevFlyingWindows(ctx, canvas),
+        'flying-toasters': () => prevFlyingToasters(ctx, canvas),
+        flowerbox: () => prevFlowerBox(ctx, canvas),
+        aquarium: () => prevAquarium(ctx, canvas),
+        bsod: () => prevBSOD(ctx, canvas),
         mystify: () => prevMystify(ctx, canvas),
         starfield: () => prevStarfield(ctx, canvas),
         matrix: () => prevMatrix(ctx, canvas),
@@ -1125,3 +1327,642 @@ function prevText3D(ctx, c) {
     }
     frame();
 }
+
+// ── New Screensavers Mini-Preview Renderers ───────────────
+
+function prevFlyingWindows(ctx, c) {
+    const stars = Array.from({length: 35}, () => ({
+        x: (Math.random() - 0.5) * c.width,
+        y: (Math.random() - 0.5) * c.height,
+        z: Math.random() * c.width
+    }));
+    const logos = Array.from({length: 8}, () => ({
+        x: (Math.random() - 0.5) * c.width * 1.5,
+        y: (Math.random() - 0.5) * c.height * 1.5,
+        z: Math.random() * c.width
+    }));
+    const cx = c.width / 2, cy = c.height / 2;
+
+    function frame() {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, c.width, c.height);
+
+        stars.forEach(s => {
+            s.z -= 1.8;
+            if (s.z <= 0) { s.x = (Math.random() - 0.5) * c.width; s.y = (Math.random() - 0.5) * c.height; s.z = c.width; }
+            const sx = (s.x / s.z) * 100 + cx, sy = (s.y / s.z) * 100 + cy;
+            if (sx >= 0 && sx < c.width && sy >= 0 && sy < c.height) {
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(sx, sy, 1, 1);
+            }
+        });
+
+        logos.forEach(l => {
+            l.z -= 2.0;
+            if (l.z <= 0) { l.x = (Math.random() - 0.5) * c.width * 1.5; l.y = (Math.random() - 0.5) * c.height * 1.5; l.z = c.width; }
+            const scale = 100 / l.z;
+            const sx = l.x * scale + cx, sy = l.y * scale + cy;
+            const sz = 12 * scale;
+            if (sx >= -sz && sx < c.width + sz && sy >= -sz && sy < c.height + sz) {
+                const s2 = sz / 2;
+                ctx.fillStyle = '#f00'; ctx.fillRect(sx - s2, sy - s2, s2, s2);
+                ctx.fillStyle = '#0a0'; ctx.fillRect(sx, sy - s2, s2, s2);
+                ctx.fillStyle = '#05f'; ctx.fillRect(sx - s2, sy, s2, s2);
+                ctx.fillStyle = '#fc0'; ctx.fillRect(sx, sy, s2, s2);
+            }
+        });
+
+        prevAnimId = requestAnimationFrame(frame);
+    }
+    frame();
+}
+
+function prevFlyingToasters(ctx, c) {
+    const toasters = Array.from({length: 4}, (_, i) => ({
+        x: (c.width / 4) * i + 20,
+        y: (c.height / 4) * (3 - i) + 10,
+        scale: 0.6 + i * 0.15,
+        phase: Math.random() * Math.PI
+    }));
+
+    function frame() {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, c.width, c.height);
+
+        toasters.forEach(t => {
+            t.x -= 0.8 * t.scale;
+            t.y += 0.5 * t.scale;
+            t.phase += 0.2;
+            if (t.x < -30 || t.y > c.height + 20) {
+                t.x = c.width + 20;
+                t.y = -20;
+            }
+
+            ctx.save();
+            ctx.translate(t.x, t.y);
+            ctx.scale(t.scale, t.scale);
+
+            // Wing flap
+            const flap = Math.sin(t.phase) * 6;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.ellipse(-2, -10 + flap, 5, 10, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Toaster
+            ctx.fillStyle = '#ccc';
+            ctx.fillRect(-12, -8, 24, 16);
+            ctx.fillStyle = '#8b5a2b';
+            ctx.fillRect(-6, -12, 12, 6);
+
+            ctx.restore();
+        });
+
+        prevAnimId = requestAnimationFrame(frame);
+    }
+    frame();
+}
+
+function prevFlowerBox(ctx, c) {
+    let ang = 0;
+    function frame() {
+        ang += 0.03;
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, c.width, c.height);
+
+        ctx.save();
+        ctx.translate(c.width / 2, c.height / 2);
+
+        const r = 24 + Math.sin(ang * 2) * 8;
+        for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2 + ang;
+            const x = Math.cos(a) * r, y = Math.sin(a) * r;
+            ctx.fillStyle = `hsl(${i * 60 + ang * 50}, 80%, 50%)`;
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.rect(x - 8, y - 8, 16, 16);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        ctx.restore();
+        prevAnimId = requestAnimationFrame(frame);
+    }
+    frame();
+}
+
+function prevAquarium(ctx, c) {
+    const fishes = Array.from({length: 5}, (_, i) => ({
+        x: Math.random() * c.width,
+        y: 20 + i * 20,
+        spd: (i % 2 === 0 ? 0.6 : -0.6) * (0.8 + Math.random() * 0.4),
+        col: ['#f60', '#08f', '#fc0', '#f36'][i % 4]
+    }));
+
+    function frame() {
+        ctx.fillStyle = '#001833';
+        ctx.fillRect(0, 0, c.width, c.height);
+
+        // Sand
+        ctx.fillStyle = '#9e8432';
+        ctx.fillRect(0, c.height - 12, c.width, 12);
+
+        // Fish
+        fishes.forEach(f => {
+            f.x += f.spd;
+            if (f.spd > 0 && f.x > c.width + 15) f.x = -15;
+            if (f.spd < 0 && f.x < -15) f.x = c.width + 15;
+
+            ctx.fillStyle = f.col;
+            ctx.beginPath();
+            ctx.ellipse(f.x, f.y, 8, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        prevAnimId = requestAnimationFrame(frame);
+    }
+    frame();
+}
+
+function prevBSOD(ctx, c) {
+    ctx.fillStyle = '#0000aa';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.fillStyle = '#aaa';
+    ctx.fillRect(c.width / 2 - 25, 20, 50, 14);
+    ctx.fillStyle = '#00a';
+    ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Windows', c.width / 2, 30);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = '7px monospace';
+    ctx.fillText('A fatal exception 0E has occurred at 0028:C0011E36', c.width / 2, 60);
+    ctx.fillText('Press any key to continue _', c.width / 2, 85);
+}
+
+// ── Volume Control Popup ─────────────────────────────────
+function toggleVolumeControl() {
+    const pop = document.getElementById('vol-popup');
+    if (!pop) return;
+    pop.classList.toggle('hidden');
+    if (window.RetroAudio && !pop.classList.contains('hidden')) {
+        RetroAudio.playClick();
+        const slider = document.getElementById('vol-slider');
+        const chk = document.getElementById('vol-mute-chk');
+        if (slider) slider.value = Math.round(RetroAudio.volume * 100);
+        if (chk) chk.checked = RetroAudio.muted;
+    }
+}
+
+// ── Run Dialog ───────────────────────────────────────────
+function openRun() {
+    closeAllMenus();
+    if (window.RetroAudio) RetroAudio.playClick();
+    const dlg = document.getElementById('run-dlg');
+    if (dlg) {
+        dlg.classList.remove('hidden');
+        bringToFront(dlg);
+        const inp = document.getElementById('run-input');
+        if (inp) { inp.value = ''; inp.focus(); }
+    }
+}
+
+function closeRun() {
+    document.getElementById('run-dlg')?.classList.add('hidden');
+}
+
+function execRun() {
+    const inp = document.getElementById('run-input');
+    const cmd = inp ? inp.value.trim().toLowerCase() : '';
+    closeRun();
+    if (!cmd) return;
+
+    if (cmd === 'calc' || cmd === 'calculator') {
+        openNativeCalc();
+    } else if (cmd === 'notepad') {
+        openNativeNotepad();
+    } else if (cmd === 'win31' || cmd === 'windows31') {
+        window.open('screensavers/win31/', '_self');
+    } else if (cmd === 'portal') {
+        window.open('screensavers/portal/', '_self');
+    } else if (cmd === 'explorer' || cmd === 'mycomputer') {
+        openMyComputer();
+    } else if (cmd in SS_META) {
+        launchSS(cmd);
+    } else {
+        showError('Cannot find file', `Cannot find the file '<b>${cmd}</b>' (or one of its components). Make sure the path and filename are correct.`, '⚠️');
+    }
+}
+
+document.getElementById('run-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') execRun();
+});
+
+// ── Shut Down Dialog & Restart Sequence ──────────────────
+function openShutDown() {
+    closeAllMenus();
+    if (window.RetroAudio) RetroAudio.playClick();
+    const dlg = document.getElementById('shutdown-dlg');
+    if (dlg) {
+        dlg.classList.remove('hidden');
+        bringToFront(dlg);
+    }
+}
+
+function closeShutDown() {
+    document.getElementById('shutdown-dlg')?.classList.add('hidden');
+}
+
+function doShutDown() {
+    closeShutDown();
+    const radio = document.querySelector('input[name="sd-action"]:checked');
+    const act = radio ? radio.value : 'off';
+
+    if (act === 'restart') {
+        location.reload();
+    } else if (act === 'dos') {
+        window.open('screensavers/portal/', '_self');
+    } else {
+        // Shut Down orange screen
+        if (window.RetroAudio) RetroAudio.playClick();
+        const screen = document.getElementById('turnoff-screen');
+        if (screen) screen.classList.remove('hidden');
+    }
+}
+
+function restartWindows() {
+    document.getElementById('turnoff-screen')?.classList.add('hidden');
+    location.reload();
+}
+
+// ── Native Windows 98 Mini-Apps ──────────────────────────
+
+function openMyComputer() {
+    if (Object.keys(windows).length >= MAX_WINDOWS) {
+        showError('System Resources', 'Too many windows open.', '⚠️');
+        return;
+    }
+    const id = 'win-' + (nextWinId++);
+    closeAllMenus();
+
+    const win = document.createElement('div');
+    win.className = 'ww';
+    win.id = id;
+    const left = 70 + Object.keys(windows).length * 20;
+    const top = 40 + Object.keys(windows).length * 20;
+    win.style.cssText = `left:${left}px;top:${top}px;width:520px;height:340px;z-index:${++nextZ};`;
+
+    win.innerHTML = `
+        <div class="wtb" id="tb-${id}">
+            <div class="wtb-l"><span>💻</span><span>My Computer</span></div>
+            <div class="wtb-btns">
+                <button onclick="minWin('${id}')">_</button>
+                <button onclick="maxWin('${id}')">□</button>
+                <button onclick="closeWin('${id}')">✕</button>
+            </div>
+        </div>
+        <div class="wmb">
+            <span class="mi">File</span>
+            <span class="mi">Edit</span>
+            <span class="mi">View</span>
+            <span class="mi">Help</span>
+        </div>
+        <div class="wsb" style="padding:2px 6px;gap:6px;font-size:11px;">
+            <span>Address:</span>
+            <div style="flex:1;background:#fff;border:1px solid #808080;padding:0 4px;">My Computer</div>
+        </div>
+        <div class="ssc" style="background:#fff;padding:16px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:20px;overflow:auto;">
+            <div class="di" style="cursor:pointer;" ondblclick="showDriveC('${id}')">
+                <div class="ic" style="font-size:32px;">💽</div>
+                <span style="color:#000;text-shadow:none;">(C:) Drive</span>
+            </div>
+            <div class="di" style="cursor:pointer;" ondblclick="readFloppyA()">
+                <div class="ic" style="font-size:32px;">💾</div>
+                <span style="color:#000;text-shadow:none;">3½ Floppy (A:)</span>
+            </div>
+            <div class="di" style="cursor:pointer;" ondblclick="showError('Device Not Ready', 'There is no disc in drive D:. Please insert a compact disc.', '💿')">
+                <div class="ic" style="font-size:32px;">💿</div>
+                <span style="color:#000;text-shadow:none;">(D:) CD-ROM</span>
+            </div>
+            <div class="di" style="cursor:pointer;" ondblclick="openDP()">
+                <div class="ic" style="font-size:32px;">🎛️</div>
+                <span style="color:#000;text-shadow:none;">Control Panel</span>
+            </div>
+        </div>
+        <div class="wsb">
+            <div class="sp">4 object(s)</div>
+            <div class="sp" id="clk-${id}" style="margin-left:auto;"></div>
+        </div>`;
+
+    document.getElementById('desktop').appendChild(win);
+    makeDraggable(win, document.getElementById('tb-' + id));
+    makeResizable(win);
+    bringToFront(win);
+
+    windows[id] = { el: win, ssKey: '__mycomp__', id, iframeEl: null, maxed: false };
+    addTBItem(id, { icon: '💻', title: 'My Computer' });
+}
+
+function readFloppyA() {
+    if (window.RetroAudio) RetroAudio.playFloppy();
+    setTimeout(() => {
+        showError('Drive Not Ready', 'Device <b>A:</b> is not ready.<br><br>The drive door may be open, or there is no diskette in the drive. Please insert a diskette into drive A: and try again.', '💾');
+    }, 600);
+}
+
+function showDriveC(winId) {
+    if (window.RetroAudio) RetroAudio.playDefragSeek();
+    const cont = document.querySelector('#' + winId + ' .ssc');
+    if (!cont) return;
+    cont.innerHTML = `
+        <div class="di" style="cursor:pointer;" ondblclick="showError('Access Denied', 'C:\\\\WINDOWS is protected system storage.', '⚠️')">
+            <div class="ic" style="font-size:32px;">📁</div>
+            <span style="color:#000;text-shadow:none;">WINDOWS</span>
+        </div>
+        <div class="di" style="cursor:pointer;">
+            <div class="ic" style="font-size:32px;">📁</div>
+            <span style="color:#000;text-shadow:none;">Program Files</span>
+        </div>
+        <div class="di" style="cursor:pointer;" ondblclick="openNativeNotepad()">
+            <div class="ic" style="font-size:32px;">📄</div>
+            <span style="color:#000;text-shadow:none;">AUTOEXEC.BAT</span>
+        </div>
+        <div class="di" style="cursor:pointer;" ondblclick="openNativeNotepad()">
+            <div class="ic" style="font-size:32px;">📄</div>
+            <span style="color:#000;text-shadow:none;">CONFIG.SYS</span>
+        </div>`;
+}
+
+function openNativeNotepad() {
+    if (Object.keys(windows).length >= MAX_WINDOWS) {
+        showError('System Resources', 'Too many windows open.', '⚠️');
+        return;
+    }
+    const id = 'win-' + (nextWinId++);
+    closeAllMenus();
+    if (window.RetroAudio) RetroAudio.playClick();
+
+    const win = document.createElement('div');
+    win.className = 'ww';
+    win.id = id;
+    const left = 80 + Object.keys(windows).length * 20;
+    const top = 50 + Object.keys(windows).length * 20;
+    win.style.cssText = `left:${left}px;top:${top}px;width:440px;height:300px;z-index:${++nextZ};`;
+
+    win.innerHTML = `
+        <div class="wtb" id="tb-${id}">
+            <div class="wtb-l"><span>📝</span><span>Untitled - Notepad</span></div>
+            <div class="wtb-btns">
+                <button onclick="minWin('${id}')">_</button>
+                <button onclick="maxWin('${id}')">□</button>
+                <button onclick="closeWin('${id}')">✕</button>
+            </div>
+        </div>
+        <div class="wmb">
+            <span class="mi">File</span>
+            <span class="mi">Edit</span>
+            <span class="mi">Search</span>
+            <span class="mi" onclick="openAbout()">Help</span>
+        </div>
+        <div class="ssc" style="background:#fff;">
+            <textarea style="width:100%;height:100%;border:none;outline:none;padding:6px;font-family:'Courier New',monospace;font-size:12px;resize:none;" placeholder="Type your retro notes here..."></textarea>
+        </div>
+        <div class="wsb">
+            <div class="sp">Ln 1, Col 1</div>
+            <div class="sp" id="clk-${id}" style="margin-left:auto;"></div>
+        </div>`;
+
+    document.getElementById('desktop').appendChild(win);
+    makeDraggable(win, document.getElementById('tb-' + id));
+    makeResizable(win);
+    bringToFront(win);
+
+    windows[id] = { el: win, ssKey: '__notepad__', id, iframeEl: null, maxed: false };
+    addTBItem(id, { icon: '📝', title: 'Notepad' });
+}
+
+function openNativeCalc() {
+    if (Object.keys(windows).length >= MAX_WINDOWS) {
+        showError('System Resources', 'Too many windows open.', '⚠️');
+        return;
+    }
+    const id = 'win-' + (nextWinId++);
+    closeAllMenus();
+    if (window.RetroAudio) RetroAudio.playClick();
+
+    const win = document.createElement('div');
+    win.className = 'ww';
+    win.id = id;
+    const left = 120 + Object.keys(windows).length * 20;
+    const top = 70 + Object.keys(windows).length * 20;
+    win.style.cssText = `left:${left}px;top:${top}px;width:260px;height:290px;z-index:${++nextZ};`;
+
+    win.innerHTML = `
+        <div class="wtb" id="tb-${id}">
+            <div class="wtb-l"><span>🧮</span><span>Calculator</span></div>
+            <div class="wtb-btns">
+                <button onclick="minWin('${id}')">_</button>
+                <button onclick="closeWin('${id}')">✕</button>
+            </div>
+        </div>
+        <div class="wmb">
+            <span class="mi">Edit</span>
+            <span class="mi">View</span>
+            <span class="mi" onclick="openAbout()">Help</span>
+        </div>
+        <div class="dbody" style="padding:8px;">
+            <div id="calc-disp-${id}" style="background:#fff;border:2px solid;border-color:#808080 #fff #fff #808080;height:28px;text-align:right;font-size:16px;line-height:24px;padding:0 6px;margin-bottom:8px;font-family:'Courier New',monospace;font-weight:bold;">0</div>
+            <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:4px;">
+                <button class="btn" style="color:#f00;" onclick="calcInput('${id}', 'C')">C</button>
+                <button class="btn" onclick="calcInput('${id}', 'CE')">CE</button>
+                <button class="btn" onclick="calcInput('${id}', '±')">±</button>
+                <button class="btn" style="color:#00f;" onclick="calcInput('${id}', '/')">/</button>
+                <button class="btn" onclick="calcInput('${id}', '7')">7</button>
+                <button class="btn" onclick="calcInput('${id}', '8')">8</button>
+                <button class="btn" onclick="calcInput('${id}', '9')">9</button>
+                <button class="btn" style="color:#00f;" onclick="calcInput('${id}', '*')">*</button>
+                <button class="btn" onclick="calcInput('${id}', '4')">4</button>
+                <button class="btn" onclick="calcInput('${id}', '5')">5</button>
+                <button class="btn" onclick="calcInput('${id}', '6')">6</button>
+                <button class="btn" style="color:#00f;" onclick="calcInput('${id}', '-')">-</button>
+                <button class="btn" onclick="calcInput('${id}', '1')">1</button>
+                <button class="btn" onclick="calcInput('${id}', '2')">2</button>
+                <button class="btn" onclick="calcInput('${id}', '3')">3</button>
+                <button class="btn" style="color:#00f;" onclick="calcInput('${id}', '+')">+</button>
+                <button class="btn" onclick="calcInput('${id}', '0')">0</button>
+                <button class="btn" onclick="calcInput('${id}', '.')">.</button>
+                <button class="btn" style="color:#00f;grid-column:span 2;" onclick="calcInput('${id}', '=')">=</button>
+            </div>
+        </div>`;
+
+    document.getElementById('desktop').appendChild(win);
+    makeDraggable(win, document.getElementById('tb-' + id));
+    bringToFront(win);
+
+    windows[id] = { el: win, ssKey: '__calc__', id, iframeEl: null, expr: '' };
+    addTBItem(id, { icon: '🧮', title: 'Calculator' });
+}
+
+function calcInput(id, val) {
+    if (window.RetroAudio) RetroAudio.playClick();
+    const w = windows[id];
+    const disp = document.getElementById('calc-disp-' + id);
+    if (!disp) return;
+
+    if (val === 'C' || val === 'CE') {
+        w.expr = '';
+        disp.textContent = '0';
+    } else if (val === '=') {
+        try {
+            const res = Function('"use strict";return (' + (w.expr || '0') + ')')();
+            disp.textContent = String(res).slice(0, 12);
+            w.expr = String(res);
+        } catch (e) {
+            disp.textContent = 'Error';
+            w.expr = '';
+        }
+    } else if (val === '±') {
+        if (w.expr) {
+            w.expr = String(-parseFloat(w.expr));
+            disp.textContent = w.expr;
+        }
+    } else {
+        if (disp.textContent === '0' || disp.textContent === 'Error') {
+            w.expr = val;
+        } else {
+            w.expr += val;
+        }
+        disp.textContent = w.expr.slice(-12);
+    }
+}
+
+// ── Desktop Context Menu & Marquee Selection ─────────────
+
+function closeCtx() {
+    document.getElementById('ctx-desktop')?.classList.add('hidden');
+}
+
+function arrangeIcons() {
+    const icons = Array.from(document.querySelectorAll('#icon-grid .di'));
+    icons.sort((a, b) => a.querySelector('span').textContent.localeCompare(b.querySelector('span').textContent));
+    const grid = document.getElementById('icon-grid');
+    icons.forEach(ic => grid.appendChild(ic));
+}
+
+(function setupDesktopInteractions() {
+    const desktop = document.getElementById('desktop');
+    const ctxMenu = document.getElementById('ctx-desktop');
+
+    // Right Click Context Menu
+    desktop.addEventListener('contextmenu', e => {
+        if (e.target.closest('.ww') || e.target.closest('.dlg')) return;
+        e.preventDefault();
+        closeAllMenus();
+        if (ctxMenu) {
+            ctxMenu.style.left = Math.min(e.clientX, innerWidth - 160) + 'px';
+            ctxMenu.style.top = Math.min(e.clientY, innerHeight - 180) + 'px';
+            ctxMenu.classList.remove('hidden');
+        }
+    });
+
+    // Close context menu on left click anywhere
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#ctx-desktop')) closeCtx();
+    });
+
+    // Marquee Selection Box
+    let isMarquee = false;
+    let sx = 0, sy = 0;
+    const marquee = document.getElementById('marquee-box') || document.createElement('div');
+    marquee.id = 'marquee-box';
+    marquee.className = 'hidden';
+    if (!marquee.parentElement) document.body.appendChild(marquee);
+
+    desktop.addEventListener('mousedown', e => {
+        if (e.target !== desktop && e.target !== document.getElementById('icon-grid')) return;
+        if (e.button !== 0) return; // Left click only
+        isMarquee = true;
+        sx = e.clientX;
+        sy = e.clientY;
+        marquee.style.left = sx + 'px';
+        marquee.style.top = sy + 'px';
+        marquee.style.width = '0px';
+        marquee.style.height = '0px';
+        marquee.classList.remove('hidden');
+
+        document.querySelectorAll('.di').forEach(d => d.classList.remove('selected'));
+    });
+
+    document.addEventListener('mousemove', e => {
+        if (!isMarquee) return;
+        const x = Math.min(e.clientX, sx);
+        const y = Math.min(e.clientY, sy);
+        const w = Math.abs(e.clientX - sx);
+        const h = Math.abs(e.clientY - sy);
+
+        marquee.style.left = x + 'px';
+        marquee.style.top = y + 'px';
+        marquee.style.width = w + 'px';
+        marquee.style.height = h + 'px';
+
+        const mr = marquee.getBoundingClientRect();
+        document.querySelectorAll('.di').forEach(di => {
+            const dr = di.getBoundingClientRect();
+            const overlap = !(mr.right < dr.left || mr.left > dr.right || mr.bottom < dr.top || mr.top > dr.bottom);
+            di.classList.toggle('selected', overlap);
+        });
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isMarquee) {
+            isMarquee = false;
+            marquee.classList.add('hidden');
+        }
+    });
+})();
+
+// ── Restore Saved Preferences & Audio Init ────────────────
+(function initPreferences() {
+    try {
+        const savedSS = localStorage.getItem('retro_selected_ss');
+        if (savedSS && SS_META[savedSS]) {
+            dpSelectedSS = savedSS;
+            const sel = document.getElementById('ss-sel');
+            if (sel) sel.value = savedSS;
+        }
+
+        const savedWP = localStorage.getItem('retro_wallpaper');
+        if (savedWP) {
+            applyWallpaper(savedWP);
+            const sel = document.getElementById('dp-wp-sel');
+            if (sel) sel.value = savedWP;
+            previewWallpaper(savedWP);
+        }
+
+        const savedTheme = localStorage.getItem('retro_theme');
+        if (savedTheme) {
+            applyTheme(savedTheme, false);
+            const sel = document.getElementById('dp-scheme-sel');
+            if (sel) sel.value = savedTheme;
+        }
+
+        const savedCRT = localStorage.getItem('retro_crt');
+        if (savedCRT === 'true') {
+            toggleCRT(true);
+            const chk = document.getElementById('dp-crt-toggle');
+            if (chk) chk.checked = true;
+        }
+    } catch (e) {}
+
+    // First user gesture triggers authentic Win98 startup chime!
+    let playedStartup = false;
+    const playOnce = () => {
+        if (!playedStartup && window.RetroAudio) {
+            playedStartup = true;
+            RetroAudio.playStartup();
+        }
+        ['click', 'keydown'].forEach(evt => document.removeEventListener(evt, playOnce));
+    };
+    ['click', 'keydown'].forEach(evt => document.addEventListener(evt, playOnce));
+})();

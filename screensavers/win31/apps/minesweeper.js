@@ -87,10 +87,12 @@ function openMinesweeper() {
         }
         if (msBoard[r][c] === -1) {
             gameOver = true; faceEl.textContent = '😵';
+            if (window.RetroAudio) RetroAudio.playCrashBeep();
             revealAll(); getCell(r, c).classList.add('mine-hit');
             if (timerInterval) clearInterval(timerInterval);
             return;
         }
+        if (window.RetroAudio) RetroAudio.playClick();
         reveal(r, c); checkWin();
     }
 
@@ -129,6 +131,7 @@ function openMinesweeper() {
         for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { if (!revealed[r][c]) unrevealed++; }
         if (unrevealed === MINES) {
             won = true; gameOver = true; faceEl.textContent = '😎';
+            if (window.RetroAudio) RetroAudio.playDvdHit();
             if (timerInterval) clearInterval(timerInterval);
         }
     }

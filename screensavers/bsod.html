@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blue Screen of Death Screensaver — Windows 98 Edition</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #0000aa; 
+            color: #ffffff; 
+            font-family: 'Courier New', 'Lucida Console', monospace; 
+            font-size: 16px; 
+            line-height: 1.5; 
+            overflow: hidden; 
+            width: 100vw; 
+            height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            user-select: none;
+            cursor: none;
+        }
+        #bsod-box {
+            max-width: 720px;
+            padding: 24px;
+        }
+        .header-tag {
+            background: #aaaaaa;
+            color: #0000aa;
+            display: inline-block;
+            padding: 2px 14px;
+            font-weight: bold;
+            margin-bottom: 24px;
+        }
+        .blink {
+            animation: blink 0.8s infinite step-end;
+        }
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        #bios-screen {
+            position: fixed;
+            inset: 0;
+            background: #000000;
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            padding: 24px;
+            font-size: 14px;
+            display: none;
+            line-height: 1.4;
+        }
+        .back-link { position: fixed; top: 8px; left: 8px; z-index: 999; font: 12px Tahoma, Arial, sans-serif; color: rgba(255,255,255,0.4); text-decoration: none; padding: 4px 8px; cursor: pointer; }
+        .back-link:hover { color: rgba(255,255,255,0.9); }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link">← retro.bithash.cc</a>
+
+    <div id="bsod-box">
+        <div class="header-tag">Windows</div>
+        <p style="margin-bottom: 18px;">
+            A fatal exception 0E has occurred at 0028:C0011E36 in VXD VMM(01) + 00010E36. The current application will be terminated.
+        </p>
+        <p style="margin-bottom: 8px;">
+            * &nbsp;Press any key to terminate the current application.
+        </p>
+        <p style="margin-bottom: 8px;">
+            * &nbsp;Press CTRL+ALT+DEL again to restart your computer. You will lose any unsaved information in all applications.
+        </p>
+        <p id="dump-line" style="margin-top: 24px; display: none; color: #ffff55;">
+            Dumping physical memory to disk: <span id="dump-pct">0</span>%
+        </p>
+        <p style="margin-top: 24px;">
+            Press any key to continue <span class="blink">_</span>
+        </p>
+    </div>
+
+    <!-- Simulated BIOS Screen -->
+    <div id="bios-screen">
+        <div style="margin-bottom: 16px;">Award Modular BIOS v4.51PG, An Energy Star Ally</div>
+        <div>Copyright (C) 1984-98, Award Software, Inc.</div>
+        <div style="margin-bottom: 24px;">PENTIUM II CPU at 450MHz</div>
+        <div id="ram-test" style="margin-bottom: 16px;">Memory Test: 0 KB OK</div>
+        <div id="bios-details" style="display: none;">
+            <div>Award Plug and Play BIOS Extension v1.0A</div>
+            <div>Primary Master &nbsp; : WDC WD100EB 10.0GB</div>
+            <div>Primary Slave &nbsp;&nbsp; : None</div>
+            <div>Secondary Master : ATAPI CD-ROM 48X</div>
+            <div style="margin-top: 16px; color: #aaaaaa;">Starting Windows 98...</div>
+        </div>
+    </div>
+
+    <script>
+        let isRebooting = false;
+
+        function triggerReboot() {
+            if (isRebooting) return;
+            isRebooting = true;
+
+            const dumpLine = document.getElementById('dump-line');
+            const dumpPct = document.getElementById('dump-pct');
+            dumpLine.style.display = 'block';
+
+            let pct = 0;
+            const dumpInterval = setInterval(() => {
+                pct += Math.floor(Math.random() * 12) + 6;
+                if (pct >= 100) {
+                    pct = 100;
+                    clearInterval(dumpInterval);
+                    setTimeout(showBios, 800);
+                }
+                dumpPct.textContent = pct;
+            }, 80);
+        }
+
+        function showBios() {
+            document.getElementById('bsod-box').style.display = 'none';
+            const bios = document.getElementById('bios-screen');
+            bios.style.display = 'block';
+
+            let ram = 0;
+            const maxRam = 131072;
+            const ramEl = document.getElementById('ram-test');
+            const ramInterval = setInterval(() => {
+                ram += 8192;
+                if (ram >= maxRam) {
+                    ram = maxRam;
+                    clearInterval(ramInterval);
+                    document.getElementById('bios-details').style.display = 'block';
+                    setTimeout(resetBSOD, 2200);
+                }
+                ramEl.textContent = `Memory Test: ${ram} KB OK`;
+            }, 50);
+        }
+
+        function resetBSOD() {
+            document.getElementById('bios-screen').style.display = 'none';
+            document.getElementById('bios-details').style.display = 'none';
+            document.getElementById('dump-line').style.display = 'none';
+            document.getElementById('bsod-box').style.display = 'block';
+            isRebooting = false;
+        }
+
+        window.addEventListener('keydown', triggerReboot);
+        window.addEventListener('click', triggerReboot);
+    </script>
+</body>
+</html>

@@ -230,6 +230,7 @@ function openSolitaire() {
         const total = foundations.reduce((s, f) => s + f.length, 0);
         if (total === 52) {
             setTimeout(() => {
+                if (window.RetroAudio) RetroAudio.playDvdHit();
                 scoreEl.textContent = 'Score: ' + score + ' — YOU WIN! 🎉';
                 bounceCards();
             }, 100);
