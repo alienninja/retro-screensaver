@@ -23,6 +23,7 @@ import nextstep1989   from './nextstep-1989.js';
 import bbs1993        from './bbs-1993.js';
 import cde1995        from './cde-1995.js';
 import hackers1995    from './hackers-1995.js';
+import thenet1995     from './thenet-1995.js';
 import win95_1995     from './win95-1995.js';
 import irix1996       from './irix-1996.js';
 import os2_1996       from './os2-1996.js';
@@ -48,6 +49,7 @@ export const destinations = [
   bbs1993,
   cde1995,
   hackers1995,
+  thenet1995,
   win95_1995,
   irix1996,
   os2_1996,

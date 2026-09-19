@@ -50,6 +50,8 @@ A lovingly-crafted Windows 98 desktop experience in the browser, featuring **14 
 - **Run Dialog** — Type `calc`, `notepad`, `defrag`, `win31`, `portal`, or screensaver names to launch.
 - **Shut Down Dialog** — Authentic options including restart and the iconic *"It's now safe to turn off your computer"* orange screen.
 - **Interactive Desktop** — Right-click context menus, marquee selection box, and draggable windows.
+- **The Net (1995) $\pi$ Easter Egg** — Discreet `π` symbol in the bottom-right corner (or press `Ctrl+Shift+P`) unlocks the Cathedral Software Gatekeeper backdoor.
+- **Oldschool 90s Web Counter** — Authentic digital odometer hit counter on the desktop with classic 90s badges (*Netscape 4.0*, *Made with Notepad*, *Under Construction*).
 
 ---
 
@@ -61,8 +63,8 @@ A lovingly-crafted Windows 98 desktop experience in the browser, featuring **14 
 - Virtual FAT filesystem (`Win31FS`) storing `C:\WINDOWS`, `AUTOEXEC.BAT`, etc.
 
 ### 2. Infinite OS Time Portal (`screensavers/portal/`)
-- Interdimensional wormhole jumping across 23 computing and desktop eras:
-  - **Xerox Alto** (1973), **Unix PDP-11** (1975), **Apple II** (1979), **Commodore 64** (1982), **W.O.P.R. / WarGames** (1983), **Mac System 1** (1984), **MS-DOS** (1985), **Amiga Workbench** (1985), **Max Headroom** (1987), **NeXTSTEP** (1989), **Neon Realm BBS** (1993), **CDE / Solaris** (1995), **The Gibson / Hackers** (1995), **Windows 95** (1995), **IRIX 6.5 SGI** (1996), **OS/2 Warp 4** (1996), **BeOS** (1997), **TI-89 Titanium** (1998), **KDE 1.0** (1999), **Mac OS 9** (1999), **The Matrix / Nebuchadnezzar** (1999), **Mac OS X** (2001), and **Windows XP Luna** (2001).
+- Interdimensional wormhole jumping across 24 computing and desktop eras:
+  - **Xerox Alto** (1973), **Unix PDP-11** (1975), **Apple II** (1979), **Commodore 64** (1982), **W.O.P.R. / WarGames** (1983), **Mac System 1** (1984), **MS-DOS** (1985), **Amiga Workbench** (1985), **Max Headroom** (1987), **NeXTSTEP** (1989), **Neon Realm BBS** (1993), **CDE / Solaris** (1995), **The Gibson / Hackers** (1995), **The Net / Mozart Ghost** (1995), **Windows 95** (1995), **IRIX 6.5 SGI** (1996), **OS/2 Warp 4** (1996), **BeOS** (1997), **TI-89 Titanium** (1998), **KDE 1.0** (1999), **Mac OS 9** (1999), **The Matrix / Nebuchadnezzar** (1999), **Mac OS X** (2001), and **Windows XP Luna** (2001).
 - 4 real-time canvas warp shaders (blackhole, collapse, letterfall, glitch).
 
 ---

@@ -1955,6 +1955,9 @@ function arrangeIcons() {
         }
     } catch (e) {}
 
+    // Initialize 90s visitor counter
+    initWebCounter();
+
     // First user gesture triggers authentic Win98 startup chime!
     let playedStartup = false;
     const playOnce = () => {
@@ -1965,4 +1968,56 @@ function arrangeIcons() {
         ['click', 'keydown'].forEach(evt => document.removeEventListener(evt, playOnce));
     };
     ['click', 'keydown'].forEach(evt => document.addEventListener(evt, playOnce));
+
+    // Ctrl + Shift + P hotkey for The Net (1995) Gatekeeper backdoor
+    window.addEventListener('keydown', e => {
+        if (e.ctrlKey && e.shiftKey && (e.key === 'P' || e.key === 'p' || e.key === 'π')) {
+            openGatekeeper();
+        }
+    });
 })();
+
+// ── The Net (1995) Pi Symbol Easter Egg ──
+function openGatekeeper(e) {
+    if (e) e.stopPropagation();
+    if (window.RetroAudio) RetroAudio.playChord();
+    const dlg = document.getElementById('gatekeeper-dlg');
+    if (dlg) {
+        dlg.classList.remove('hidden');
+        dlg.style.zIndex = nextZ();
+        makeDraggable('gatekeeper-dlg', 'gk-tb');
+    }
+}
+window.openGatekeeper = openGatekeeper;
+
+function closeGatekeeper() {
+    const dlg = document.getElementById('gatekeeper-dlg');
+    if (dlg) dlg.classList.add('hidden');
+}
+window.closeGatekeeper = closeGatekeeper;
+
+// ── 90s Web Hit Visitor Counter ──
+function initWebCounter() {
+    try {
+        let count = parseInt(localStorage.getItem('retro_visitor_count') || '0', 10);
+        if (!count || count < 42000) {
+            count = 42198;
+        }
+        count++;
+        localStorage.setItem('retro_visitor_count', count.toString());
+
+        const str = count.toString().padStart(7, '0');
+        const digitsEl = document.getElementById('wc-digits');
+        if (digitsEl) {
+            digitsEl.innerHTML = '';
+            for (const ch of str) {
+                const s = document.createElement('span');
+                s.className = 'wc-digit';
+                s.textContent = ch;
+                digitsEl.appendChild(s);
+            }
+        }
+    } catch (e) {}
+}
+window.initWebCounter = initWebCounter;
+

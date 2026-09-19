@@ -531,6 +531,50 @@
             <label for="vol-mute-chk">Mute</label>
         </div>
     </div>
+
+    <!-- 90s Web Visitor Counter & Badges Widget -->
+    <div id="web-counter-widget" class="web-counter-widget">
+        <div class="wc-header">YOU ARE VISITOR NUMBER</div>
+        <div class="wc-digits" id="wc-digits">
+            <span class="wc-digit">0</span><span class="wc-digit">0</span><span class="wc-digit">4</span><span class="wc-digit">2</span><span class="wc-digit">1</span><span class="wc-digit">9</span><span class="wc-digit">8</span>
+        </div>
+        <div class="wc-badges">
+            <span class="wc-badge wc-netscape" title="Optimized for Netscape 4.0">Netscape 4.0</span>
+            <span class="wc-badge wc-notepad" title="Crafted with Windows Notepad">Notepad</span>
+            <span class="wc-badge wc-const" title="Always under construction">🚧 Under Construction</span>
+        </div>
+    </div>
+
+    <!-- The Net (1995) Pi Symbol Easter Egg (Cathedral Software Backdoor) -->
+    <div id="the-net-pi" class="the-net-pi" onclick="openGatekeeper(event)" title="π">π</div>
+
+    <!-- The Net (1995) Gatekeeper Security Backdoor Dialog -->
+    <div id="gatekeeper-dlg" class="dlg hidden" style="top:80px;left:50%;transform:translateX(-50%);width:460px;border:3px solid #aa0011;box-shadow:0 0 20px rgba(255,0,0,0.5);">
+        <div class="wtb" id="gk-tb" style="background:linear-gradient(90deg,#990000,#440000);color:#fff;">
+            <div class="wtb-l"><span style="color:#ffdd00;font-weight:bold;margin-right:4px;">π</span><span>Cathedral Software — Gatekeeper v4.2</span></div>
+            <div class="wtb-btns"><button onclick="closeGatekeeper()">✕</button></div>
+        </div>
+        <div class="dbody" style="background:#090404;color:#ff4444;font-family:'Courier New',monospace;padding:12px;user-select:none;">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid #aa0011;padding-bottom:6px;margin-bottom:10px;">
+                <span style="color:#ffdd00;font-weight:bold;">[ RESTRICTED ACCESS // LEVEL 5 ]</span>
+                <span style="animation:gkFlash 0.8s infinite alternate;">● SECURE LINK</span>
+            </div>
+            <div style="font-size:12px;line-height:1.5;">
+                <div>SYSTEM: PRAETORIANS MAINFRAME // GATEKEEPER</div>
+                <div>SUBJECT: <span style="color:#fff;">BENNETT, ANGELA</span> (RECORD COMPROMISED)</div>
+                <div>ALIAS: <span style="color:#fff;">GHOST, MOZART // SECTOR 12</span></div>
+                <div>SECURITY BACKDOOR: <span style="color:#ffdd00;">CTRL+SHIFT+π</span></div>
+            </div>
+            <div style="margin-top:10px;background:#180606;border:1px dashed #aa0011;padding:8px;font-size:11px;line-height:1.4;">
+                <div style="color:#ffaa00;font-weight:bold;">CYBERBOB INCOMING DISPATCH:</div>
+                <div style="color:#eee;">"Angela! They hijacked your identity! The Praetorians are tracing your IP. You must escape through the time portal before they wipe the server!"</div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px;">
+                <button class="btn" style="flex:1;background:#aa0011;color:#fff;border-color:#ff4444;font-weight:bold;" onclick="window.open('screensavers/portal/','_self')">🌀 Warp to OS Portal</button>
+                <button class="btn" style="background:#222;color:#aaa;" onclick="closeGatekeeper()">Disconnect</button>
+            </div>
+        </div>
+    </div>
 </main>
 
 <!-- CRT Overlay -->
