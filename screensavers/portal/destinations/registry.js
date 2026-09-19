@@ -21,11 +21,15 @@ import amiga1985      from './amiga-1985.js';
 import maxheadroom1987 from './maxheadroom-1987.js';
 import nextstep1989   from './nextstep-1989.js';
 import bbs1993        from './bbs-1993.js';
+import cde1995        from './cde-1995.js';
 import hackers1995    from './hackers-1995.js';
 import win95_1995     from './win95-1995.js';
+import irix1996       from './irix-1996.js';
+import os2_1996       from './os2-1996.js';
 import beos1997       from './beos-1997.js';
 import ti89_1998      from './ti89-1998.js';
 import kde1999        from './kde1-1999.js';
+import macos9_1999    from './macos9-1999.js';
 import matrix1999     from './matrix-1999.js';
 import osx2001        from './osx-2001.js';
 import winxp_2001     from './winxp-2001.js';
@@ -42,11 +46,15 @@ export const destinations = [
   maxheadroom1987,
   nextstep1989,
   bbs1993,
+  cde1995,
   hackers1995,
   win95_1995,
+  irix1996,
+  os2_1996,
   beos1997,
   ti89_1998,
   kde1999,
+  macos9_1999,
   matrix1999,
   osx2001,
   winxp_2001,
