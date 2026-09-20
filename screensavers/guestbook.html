@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>1998 GeoCities Guestbook</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #000033;
+            color: #ffffcc;
+            font-family: 'Times New Roman', Times, serif;
+            padding: 20px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+
+        .gb-container {
+            max-width: 680px;
+            margin: 0 auto;
+            background: #0a0a44;
+            border: 3px double #ffcc00;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        .gb-header {
+            text-align: center;
+            border-bottom: 2px solid #ffcc00;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        .gb-title {
+            color: #ffcc00;
+            font-size: 26px;
+            text-shadow: 2px 2px 0 #cc0000;
+            letter-spacing: 0.08em;
+        }
+        .gb-subtitle {
+            font-size: 13px;
+            color: #99ccff;
+            font-style: italic;
+        }
+
+        /* Rainbow HR */
+        .rainbow-hr {
+            height: 4px;
+            background: linear-gradient(90deg, red, orange, yellow, green, cyan, blue, violet);
+            border: none;
+            margin: 14px 0;
+        }
+
+        /* Sign Form */
+        .gb-form-card {
+            background: #000022;
+            border: 2px outset #6666aa;
+            padding: 14px;
+            margin-bottom: 20px;
+        }
+        .gb-form-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ff9900;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .gb-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .gb-field {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .gb-field label {
+            font-size: 11px;
+            color: #ccccff;
+            font-weight: bold;
+        }
+        .gb-input, .gb-textarea {
+            background: #ffffff;
+            color: #000000;
+            border: 2px inset #999;
+            padding: 4px 6px;
+            font-family: inherit;
+            font-size: 12px;
+        }
+        .gb-textarea {
+            width: 100%;
+            height: 60px;
+            resize: vertical;
+        }
+
+        .gb-btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .gb-btn {
+            background: #c0c0c0;
+            border: 2px outset #fff;
+            padding: 4px 14px;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .gb-btn:active { border-style: inset; }
+        .gb-btn-submit {
+            background: #008800;
+            color: #ffffff;
+            border-color: #00ff00;
+        }
+
+        /* Entry Cards */
+        .gb-entries {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .gb-entry {
+            background: #060630;
+            border: 1px solid #444488;
+            padding: 10px 14px;
+            border-radius: 3px;
+        }
+        .gb-entry-meta {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #5555aa;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: #ffaa44;
+        }
+        .gb-author { font-weight: bold; color: #ffff66; }
+        .gb-msg {
+            font-size: 13px;
+            color: #e0e0ff;
+        }
+        .gb-badge-new {
+            background: #cc0000;
+            color: #fff;
+            font-size: 9px;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-weight: bold;
+            margin-left: 6px;
+            animation: gbBlink 0.6s infinite alternate;
+        }
+        @keyframes gbBlink { from { opacity: 0.4; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="gb-container">
+        <div class="gb-header">
+            <h1 class="gb-title">★ THE 1998 GEOCITIES GUESTBOOK ★</h1>
+            <div class="gb-subtitle">~ Please leave your thoughts, greets, and website links! ~</div>
+        </div>
+
+        <div class="rainbow-hr"></div>
+
+        <!-- Interactive Sign Form -->
+        <div class="gb-form-card">
+            <div class="gb-form-title">✍️ Sign the Guestbook</div>
+            <div class="gb-row">
+                <div class="gb-field">
+                    <label>YOUR NAME / HANDLE:</label>
+                    <input type="text" class="gb-input" id="gb-name" placeholder="e.g. CyberSurfer98" />
+                </div>
+                <div class="gb-field">
+                    <label>LOCATION / CITY:</label>
+                    <input type="text" class="gb-input" id="gb-loc" placeholder="e.g. Silicon Valley, CA" />
+                </div>
+            </div>
+            <div class="gb-field" style="margin-bottom:8px;">
+                <label>MESSAGE / COMMENTS:</label>
+                <textarea class="gb-textarea" id="gb-msg" placeholder="Write your retro greeting here..."></textarea>
+            </div>
+            <div class="gb-btn-row">
+                <button class="gb-btn gb-btn-submit" id="gb-submit">Sign Guestbook ✍️</button>
+                <button class="gb-btn" id="gb-reset">Clear</button>
+            </div>
+        </div>
+
+        <div style="font-size:12px; color:#ffcc00; font-weight:bold; margin-bottom:10px;">
+            GUESTBOOK ENTRIES:
+        </div>
+
+        <div class="gb-entries" id="gb-entries-list"></div>
+
+        <div class="rainbow-hr"></div>
+
+        <div style="text-align:center; font-size:11px; color:#888;">
+            Protected by Netiquette 1.0 • Hosted on GeoCities Neighborhoods • [Back to Top]
+        </div>
+    </div>
+
+    <script>
+        const PREFILLED_ENTRIES = [
+            {
+                name: "Neo_Cyber98",
+                loc: "San Francisco, CA",
+                date: "Sept 19, 1998 08:42 PM",
+                msg: "Awesome page!! Found you through the 90s Screensavers WebRing! Your 3D pipes screensaver rules! Don't forget to visit my GeoCities page at /SiliconValley/Lakes/4020!"
+            },
+            {
+                name: "PixelQueen",
+                loc: "Seattle, WA",
+                date: "Sept 18, 1998 04:15 PM",
+                msg: "A/S/L? Love the flying toasters!! Takes me right back to middle school computer lab. Signing from Netscape 4.05 on Windows 98 SE!"
+            },
+            {
+                name: "FutureCrew_Fan",
+                loc: "Helsinki, Finland",
+                date: "Sept 17, 1998 11:20 AM",
+                msg: "Greets to Future Crew and the demoscene! Winamp chiptunes are totally wicked. 5 stars! ☆☆☆☆☆"
+            },
+            {
+                name: "X_Gamer99_X",
+                loc: "Dallas, TX",
+                date: "Sept 15, 1998 03:08 PM",
+                msg: "The Yeti in SkiFree just ate me again at 2100m! Anyone know how to fast-ski past him??"
+            },
+            {
+                name: "Cathedral_SysOp",
+                loc: "Cathedral Software",
+                date: "Sept 12, 1998 12:00 AM",
+                msg: "We see you, Angela. The Gatekeeper backdoor at π is watching you."
+            }
+        ];
+
+        function getEntries() {
+            try {
+                const stored = localStorage.getItem('retro_guestbook_custom');
+                const custom = stored ? JSON.parse(stored) : [];
+                return [...custom, ...PREFILLED_ENTRIES];
+            } catch (e) {
+                return PREFILLED_ENTRIES;
+            }
+        }
+
+        function renderEntries() {
+            const listEl = document.getElementById('gb-entries-list');
+            listEl.innerHTML = '';
+            const all = getEntries();
+
+            all.forEach((item, idx) => {
+                const card = document.createElement('div');
+                card.className = 'gb-entry';
+                card.innerHTML = `
+                    <div class="gb-entry-meta">
+                        <div>
+                            <span class="gb-author">${item.name}</span>
+                            <span>(${item.loc || 'Cyberspace'})</span>
+                            ${item.isNew ? '<span class="gb-badge-new">NEW!</span>' : ''}
+                        </div>
+                        <div>${item.date}</div>
+                    </div>
+                    <div class="gb-msg">${item.msg}</div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+        renderEntries();
+
+        document.getElementById('gb-submit').onclick = () => {
+            const name = document.getElementById('gb-name').value.trim() || 'Anonymous Surfer';
+            const loc = document.getElementById('gb-loc').value.trim() || 'Cyberspace';
+            const msg = document.getElementById('gb-msg').value.trim();
+
+            if (!msg) {
+                alert("Please enter a message before signing!");
+                return;
+            }
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+                            ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const newEntry = {
+                name: name.replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+                loc: loc.replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+                date: dateStr,
+                msg: msg.replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+                isNew: true
+            };
+
+            try {
+                const stored = localStorage.getItem('retro_guestbook_custom');
+                const custom = stored ? JSON.parse(stored) : [];
+                custom.unshift(newEntry);
+                localStorage.setItem('retro_guestbook_custom', JSON.stringify(custom));
+            } catch (e) {}
+
+            document.getElementById('gb-name').value = '';
+            document.getElementById('gb-loc').value = '';
+            document.getElementById('gb-msg').value = '';
+
+            renderEntries();
+            alert("★ Thank you for signing the 1998 GeoCities Guestbook! Your entry has been posted.");
+        };
+
+        document.getElementById('gb-reset').onclick = () => {
+            document.getElementById('gb-name').value = '';
+            document.getElementById('gb-loc').value = '';
+            document.getElementById('gb-msg').value = '';
+        };
+    </script>
+</body>
+</html>

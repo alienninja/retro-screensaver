@@ -2,7 +2,7 @@
 
 **Live site:** [retro.bithash.cc](https://retro.bithash.cc)
 
-A lovingly-crafted Windows 98 desktop experience in the browser, featuring **14 classic screensaver remakes**, a procedural **Web Audio sound synthesizer**, a complete **Windows 3.1 Program Manager sub-OS**, and a **14-era Infinite OS Time Portal**.
+A lovingly-crafted Windows 98 desktop experience in the browser, featuring **16+ classic screensaver remakes and retro apps**, a procedural **Web Audio sound synthesizer**, a complete **Windows 3.1 Program Manager sub-OS**, and a **24-era Infinite OS Time Portal**.
 
 ![Windows 98 Desktop](https://img.shields.io/badge/Windows-98-teal?style=for-the-badge)
 ![WebGL](https://img.shields.io/badge/WebGL-Three.js-orange?style=for-the-badge)
@@ -11,7 +11,7 @@ A lovingly-crafted Windows 98 desktop experience in the browser, featuring **14 
 
 ---
 
-## 🎮 Screensavers (14 Classic Remakes)
+## 🎮 Screensavers & Retro Apps (16 Remakes)
 
 | Screensaver | Technology | Description |
 |---|---|---|
@@ -29,6 +29,9 @@ A lovingly-crafted Windows 98 desktop experience in the browser, featuring **14 
 | **3D Text** | Three.js / WebGL | Chrome-shaded rotating 3D text with multiple display & rotation modes |
 | **Defrag 98** | Canvas 2D | Authentic Windows 98 Disk Defragmenter with audible HDD seek ticks |
 | **Retro Defrag** | Canvas 2D | DOS/Norton Speed Disk-era defrag with full block types |
+| **Winamp 2.91** | Web Audio / Canvas | Classic media player with green LCD timer, scrolling marquee, spectrum analyzer, and 4 chiptune tracks |
+| **SkiFree (1991)** | Canvas 2D | Retro slalom arcade game with keyboard controls, jump tricks, and the Abominable Snow Monster (Yeti) |
+| **1998 Guestbook** | HTML / LocalStorage | Curated GeoCities guestbook with 90s entries and instant safe signing (zero server moderation risk) |
 
 ---
 
@@ -43,11 +46,15 @@ A lovingly-crafted Windows 98 desktop experience in the browser, featuring **14 
   - **Settings & Energy Tabs:** Emulated resolution and power management.
 - **Procedural Sound Engine (`RetroAudio`)** — Synthesized Win98 startup chime, error chords, info dings, floppy drive seek clatter, defrag ticks, and DVD corner victory chimes without downloading external audio files.
 - **Taskbar Volume Control** — Click the `🔊` tray icon for an authentic vertical slider with master mute toggle.
-- **Native Mini-Apps:**
+- **Native Mini-Apps & Accessories:**
+  - **Winamp 2.91** — Chiptune music synthesizer with green LCD timer, spectrum analyzer, and playlist.
+  - **SkiFree (1991)** — Classic winter slalom game with jump tricks, trees, and the Yeti monster.
+  - **1998 GeoCities Guestbook** — Curated 90s entries + instant interactive signing saved to `localStorage`.
+  - **Readme.txt & Desktop Sticky Note** — Interactive Notepad document & draggable yellow note with live global visitor count.
   - **My Computer** — Browsable disk explorer with Drive C: and Floppy A: seek sounds.
   - **Calculator** — Standard Win98 calculator layout.
   - **Notepad** — Clean text editor.
-- **Run Dialog** — Type `calc`, `notepad`, `defrag`, `win31`, `portal`, or screensaver names to launch.
+- **Run Dialog** — Type `calc`, `notepad`, `defrag`, `winamp`, `skifree`, `guestbook`, `win31`, `portal`, or screensaver names to launch.
 - **Shut Down Dialog** — Authentic options including restart and the iconic *"It's now safe to turn off your computer"* orange screen.
 - **Interactive Desktop** — Right-click context menus, marquee selection box, and draggable windows.
 - **The Net (1995) $\pi$ Easter Egg** — Discreet `π` symbol in the bottom-right corner (or press `Ctrl+Shift+P`) unlocks the Cathedral Software Gatekeeper backdoor.

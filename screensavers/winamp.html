@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Winamp 2.91</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body {
+            background: #000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* ── Winamp Main Chassis ── */
+        .winamp {
+            width: 275px;
+            background: #23272a;
+            border: 2px solid;
+            border-color: #555 #111 #111 #555;
+            box-shadow: inset 1px 1px 0 #777, 3px 3px 12px rgba(0,0,0,0.8);
+            border-radius: 3px;
+            padding: 2px;
+        }
+
+        /* Titlebar */
+        .wa-tb {
+            height: 14px;
+            background: linear-gradient(90deg, #0f2b38, #1c4b63);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 4px;
+            font-size: 9px;
+            font-weight: bold;
+            color: #d0e0e8;
+            letter-spacing: 0.05em;
+            cursor: move;
+        }
+        .wa-tb-title { flex: 1; text-align: center; }
+        .wa-tb-btn {
+            width: 9px; height: 9px;
+            background: #2a3b45;
+            border: 1px outset #6b8a9c;
+            color: #fff;
+            font-size: 7px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .wa-tb-btn:active { border-style: inset; }
+
+        /* Main Display Screen */
+        .wa-screen {
+            background: #000;
+            border: 1px inset #444;
+            height: 48px;
+            margin: 4px 2px;
+            padding: 2px 4px;
+            display: flex;
+            gap: 6px;
+            position: relative;
+        }
+
+        /* Green LCD Time Display */
+        .wa-time-lcd {
+            width: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-right: 1px solid #1a2f1a;
+            padding-right: 4px;
+        }
+        .wa-time-mode {
+            font-size: 7px;
+            color: #00bb00;
+            align-self: flex-start;
+        }
+        .wa-time-digits {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ff00;
+            text-shadow: 0 0 6px #00ff00;
+            letter-spacing: 0.08em;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Right Panel: Marquee + Visualizer */
+        .wa-screen-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+        .wa-marquee-box {
+            height: 14px;
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+        }
+        .wa-marquee {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: bold;
+            color: #00ff00;
+            text-shadow: 0 0 4px #00ff00;
+            animation: waScroll 12s linear infinite;
+        }
+        @keyframes waScroll {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Spectrum Analyzer Canvas */
+        .wa-vis-canvas {
+            width: 100%;
+            height: 18px;
+            background: #080808;
+            border: 1px solid #112211;
+            display: block;
+            cursor: pointer;
+        }
+
+        /* Info Line: Bitrate / kHz */
+        .wa-info-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 7px;
+            color: #00aa00;
+        }
+
+        /* Sliders Area (Volume / Balance) */
+        .wa-sliders {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 2px 6px;
+        }
+        .wa-slider-grp {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
+        }
+        .wa-slider-grp span { font-size: 8px; color: #888; font-weight: bold; }
+        .wa-range {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            background: #111;
+            border: 1px inset #555;
+            outline: none;
+        }
+        .wa-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px; height: 10px;
+            background: #777;
+            border: 1px outset #aaa;
+            cursor: pointer;
+        }
+
+        /* Transport Buttons Row */
+        .wa-transport {
+            display: flex;
+            gap: 2px;
+            padding: 4px 2px;
+            justify-content: space-between;
+        }
+        .wa-btn {
+            background: linear-gradient(180deg, #444 0%, #222 100%);
+            border: 1px outset #666;
+            color: #ccc;
+            font-size: 10px;
+            font-weight: bold;
+            height: 20px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .wa-btn:hover { background: #555; color: #fff; }
+        .wa-btn:active, .wa-btn.active {
+            border-style: inset;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+
+        /* Playlist Window */
+        .wa-playlist {
+            margin-top: 4px;
+            width: 275px;
+            background: #181a1d;
+            border: 2px solid;
+            border-color: #444 #111 #111 #444;
+            padding: 4px;
+            font-size: 10px;
+        }
+        .wa-pl-title {
+            color: #88a;
+            font-weight: bold;
+            border-bottom: 1px solid #333;
+            padding-bottom: 2px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .wa-pl-item {
+            padding: 2px 4px;
+            color: #aaa;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+        .wa-pl-item:hover { background: #28303a; color: #fff; }
+        .wa-pl-item.selected {
+            background: #000066;
+            color: #00ff00;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="winamp" id="winamp">
+        <!-- Titlebar -->
+        <div class="wa-tb">
+            <span style="color:#00ff00;">⚡</span>
+            <div class="wa-tb-title">WINAMP</div>
+            <div style="display:flex;gap:2px;">
+                <div class="wa-tb-btn" id="wa-btn-min">_</div>
+                <div class="wa-tb-btn" id="wa-btn-close">✕</div>
+            </div>
+        </div>
+
+        <!-- Main Display -->
+        <div class="wa-screen">
+            <div class="wa-time-lcd">
+                <span class="wa-time-mode">TIME</span>
+                <span class="wa-time-digits" id="wa-timer">00:00</span>
+            </div>
+
+            <div class="wa-screen-right">
+                <div class="wa-marquee-box">
+                    <div class="wa-marquee" id="wa-marquee">1. DJ Retro - 8-Bit Cyber Anthem (1998) ***</div>
+                </div>
+                <canvas class="wa-vis-canvas" id="wa-canvas" width="180" height="18"></canvas>
+                <div class="wa-info-line">
+                    <span id="wa-kbps">128 kbps</span>
+                    <span id="wa-khz">44.1 kHz</span>
+                    <span>STEREO</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Volume & Balance Sliders -->
+        <div class="wa-sliders">
+            <div class="wa-slider-grp">
+                <span>VOL</span>
+                <input type="range" class="wa-range" id="wa-vol" min="0" max="100" value="75">
+            </div>
+            <div class="wa-slider-grp">
+                <span>BAL</span>
+                <input type="range" class="wa-range" id="wa-bal" min="-100" max="100" value="0">
+            </div>
+        </div>
+
+        <!-- Transport Controls -->
+        <div class="wa-transport">
+            <button class="wa-btn" id="wa-prev" title="Previous Track">|◀</button>
+            <button class="wa-btn" id="wa-play" title="Play">▶</button>
+            <button class="wa-btn" id="wa-pause" title="Pause">❚❚</button>
+            <button class="wa-btn" id="wa-stop" title="Stop">■</button>
+            <button class="wa-btn" id="wa-next" title="Next Track">▶|</button>
+            <button class="wa-btn" id="wa-eject" title="Open Playlist">⏏</button>
+        </div>
+    </div>
+
+    <!-- Playlist Window -->
+    <div class="wa-playlist" id="wa-playlist">
+        <div class="wa-pl-title">
+            <span>WINAMP PLAYLIST</span>
+            <span id="wa-total-tracks">4 TRACKS</span>
+        </div>
+        <div id="wa-pl-list"></div>
+    </div>
+
+    <script>
+        // Track list
+        const TRACKS = [
+            { id: 0, title: "1. DJ Retro - 8-Bit Llama Anthem (1998)", duration: "01:24", tempo: 130, scale: [220, 261.6, 293.7, 329.6, 392, 440, 523.3, 587.3] },
+            { id: 1, title: "2. FutureCrew - Cyber Demoscene Odyssey", duration: "01:45", tempo: 140, scale: [164.8, 196, 220, 246.9, 293.7, 329.6, 392, 440] },
+            { id: 2, title: "3. Space Cadet Pinball - Retro Chiptune", duration: "01:10", tempo: 125, scale: [261.6, 329.6, 392, 523.3, 659.3, 784, 1046.5] },
+            { id: 3, title: "4. Bobby Prince - At Doom's Gate (E1M1)", duration: "01:52", tempo: 145, scale: [82.4, 110, 123.5, 146.8, 164.8, 220, 329.6] }
+        ];
+
+        let curTrack = 0;
+        let isPlaying = false;
+        let isPaused = false;
+        let elapsedSec = 0;
+        let timerInterval = null;
+        let noteInterval = null;
+
+        // Audio Context & Nodes
+        let audioCtx = null;
+        let masterGain = null;
+        let analyser = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioCtx.createGain();
+                masterGain.gain.value = 0.3;
+
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 64;
+
+                masterGain.connect(analyser);
+                analyser.connect(audioCtx.destination);
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            return audioCtx;
+        }
+
+        // Procedural Note Synthesizer
+        function playChiptuneNote(freq, type = 'square', dur = 0.16) {
+            const ctx = getAudioContext();
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+            // Vintage ADSR envelope
+            g.gain.setValueAtTime(0.08, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+
+            osc.connect(g);
+            g.connect(masterGain);
+
+            osc.start();
+            osc.stop(ctx.currentTime + dur);
+        }
+
+        function playDrumHit() {
+            const ctx = getAudioContext();
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(140, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.1);
+            g.gain.setValueAtTime(0.15, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+            osc.connect(g);
+            g.connect(masterGain);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+        }
+
+        // Track Sequencer
+        let step = 0;
+        function startSequencer() {
+            stopSequencer();
+            const track = TRACKS[curTrack];
+            const intervalMs = (60 / track.tempo / 2) * 1000;
+
+            noteInterval = setInterval(() => {
+                if (!isPlaying) return;
+                const scale = track.scale;
+                const baseNote = scale[step % scale.length];
+
+                // Lead voice
+                playChiptuneNote(baseNote, 'square', 0.14);
+
+                // Bass arpeggio
+                if (step % 2 === 0) {
+                    playChiptuneNote(scale[(step * 3) % scale.length] * 0.5, 'sawtooth', 0.22);
+                }
+
+                // Percussion beat
+                if (step % 4 === 0) {
+                    playDrumHit();
+                }
+
+                step++;
+            }, intervalMs);
+        }
+
+        function stopSequencer() {
+            if (noteInterval) { clearInterval(noteInterval); noteInterval = null; }
+            step = 0;
+        }
+
+        // UI Handlers
+        const timerEl = document.getElementById('wa-timer');
+        const marqueeEl = document.getElementById('wa-marquee');
+        const playBtn = document.getElementById('wa-play');
+        const plListEl = document.getElementById('wa-pl-list');
+
+        function updatePlaylistUI() {
+            plListEl.innerHTML = '';
+            TRACKS.forEach((t, i) => {
+                const item = document.createElement('div');
+                item.className = 'wa-pl-item' + (i === curTrack ? ' selected' : '');
+                item.innerHTML = `<span>${t.title}</span><span>${t.duration}</span>`;
+                item.onclick = () => {
+                    curTrack = i;
+                    playTrack();
+                };
+                plListEl.appendChild(item);
+            });
+        }
+        updatePlaylistUI();
+
+        function playTrack() {
+            getAudioContext();
+            isPlaying = true;
+            isPaused = false;
+            playBtn.classList.add('active');
+
+            const t = TRACKS[curTrack];
+            marqueeEl.textContent = `${t.title} *** [PLAYING] ***`;
+            updatePlaylistUI();
+            startSequencer();
+
+            if (!timerInterval) {
+                timerInterval = setInterval(() => {
+                    if (isPlaying && !isPaused) {
+                        elapsedSec++;
+                        const m = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+                        const s = String(elapsedSec % 60).padStart(2, '0');
+                        timerEl.textContent = `${m}:${s}`;
+                    }
+                }, 1000);
+            }
+        }
+
+        function pauseTrack() {
+            if (!isPlaying) return;
+            isPaused = !isPaused;
+            if (isPaused) {
+                stopSequencer();
+                playBtn.classList.remove('active');
+                marqueeEl.textContent = `${TRACKS[curTrack].title} *** [PAUSED] ***`;
+            } else {
+                startSequencer();
+                playBtn.classList.add('active');
+            }
+        }
+
+        function stopTrack() {
+            isPlaying = false;
+            isPaused = false;
+            stopSequencer();
+            playBtn.classList.remove('active');
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+            elapsedSec = 0;
+            timerEl.textContent = "00:00";
+            marqueeEl.textContent = "WINAMP 2.91 - READY";
+        }
+
+        document.getElementById('wa-play').onclick = playTrack;
+        document.getElementById('wa-pause').onclick = pauseTrack;
+        document.getElementById('wa-stop').onclick = stopTrack;
+        document.getElementById('wa-next').onclick = () => {
+            curTrack = (curTrack + 1) % TRACKS.length;
+            playTrack();
+        };
+        document.getElementById('wa-prev').onclick = () => {
+            curTrack = (curTrack - 1 + TRACKS.length) % TRACKS.length;
+            playTrack();
+        };
+
+        // Volume Slider
+        document.getElementById('wa-vol').oninput = (e) => {
+            if (masterGain) masterGain.gain.value = (e.target.value / 100) * 0.4;
+        };
+
+        // Eject: Toggle Playlist
+        document.getElementById('wa-eject').onclick = () => {
+            const pl = document.getElementById('wa-playlist');
+            pl.style.display = pl.style.display === 'none' ? 'block' : 'none';
+        };
+
+        // Spectrum Analyzer Visualizer
+        const canvas = document.getElementById('wa-canvas');
+        const ctx = canvas.getContext('2d');
+        const dataArr = new Uint8Array(16);
+        let visMode = 0; // 0 = bars, 1 = oscilloscope
+
+        canvas.onclick = () => { visMode = (visMode + 1) % 2; };
+
+        function drawVisualizer() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (analyser && isPlaying && !isPaused) {
+                analyser.getByteFrequencyData(dataArr);
+
+                if (visMode === 0) {
+                    // 15 Bar Spectrum Analyzer
+                    const barW = canvas.width / 15;
+                    for (let i = 0; i < 15; i++) {
+                        const h = (dataArr[i] / 255) * canvas.height;
+                        const x = i * barW;
+                        const y = canvas.height - h;
+
+                        // Gradient: green to yellow to red
+                        ctx.fillStyle = h > 14 ? '#ff2200' : (h > 9 ? '#ffff00' : '#00ff00');
+                        ctx.fillRect(x + 1, y, barW - 2, h);
+                    }
+                } else {
+                    // Oscilloscope Waveform
+                    ctx.strokeStyle = '#00ff41';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    for (let i = 0; i < 16; i++) {
+                        const v = (dataArr[i] / 255) * canvas.height;
+                        const x = (i / 15) * canvas.width;
+                        if (i === 0) ctx.moveTo(x, v);
+                        else ctx.lineTo(x, v);
+                    }
+                    ctx.stroke();
+                }
+            } else {
+                // Idle static level
+                ctx.fillStyle = '#003300';
+                for (let i = 0; i < 15; i++) {
+                    ctx.fillRect(i * 12 + 1, canvas.height - 2, 10, 2);
+                }
+            }
+            requestAnimationFrame(drawVisualizer);
+        }
+        drawVisualizer();
+    </script>
+</body>
+</html>

@@ -158,9 +158,21 @@
             <div class="ic">🌐</div>
             <span>Internet</span>
         </div>
-        <div class="di" ondblclick="toggleDesktopNote(true)">
+        <div class="di" ondblclick="openReadme()">
             <div class="ic">📝</div>
             <span>Readme.txt</span>
+        </div>
+        <div class="di" ondblclick="openWinamp()">
+            <div class="ic">⚡</div>
+            <span>Winamp</span>
+        </div>
+        <div class="di" ondblclick="openSkiFree()">
+            <div class="ic">⛷️</div>
+            <span>SkiFree</span>
+        </div>
+        <div class="di" ondblclick="openGuestbook()">
+            <div class="ic">📖</div>
+            <span>Guestbook</span>
         </div>
     </div>
 
@@ -238,6 +250,9 @@
                     <option value="text3d">3D Text</option>
                     <option value="defrag">Defrag 98</option>
                     <option value="defrag-retro">Retro Defrag</option>
+                    <option value="winamp">⚡ Winamp 2.91</option>
+                    <option value="skifree">⛷️ SkiFree (1991)</option>
+                    <option value="guestbook">📖 1998 Guestbook</option>
                 </select>
             </div>
             <div class="drow" style="gap:6px;">
@@ -601,8 +616,8 @@
                 • Real-time live hit counter from cyberspace<br>
                 • Best viewed in 800x600, 16-bit High Color<br>
                 • Turn speakers ON for Web Audio effects!<br>
-                • 14 retro screensavers + Win 3.1 & OS Portal<br>
-                • Don't forget to bookmark! (Ctrl+D) ✍️
+                • 14 retro screensavers + Win 3.1 &amp; OS Portal<br>
+                • <a href="javascript:void(0)" onclick="openGuestbook()" style="color:#000080;font-weight:bold;text-decoration:underline;">Sign my Guestbook! ✍️</a>
             </div>
 
             <div class="note-badges">
@@ -676,6 +691,25 @@
                         <div class="smi" onclick="launchSS('text3d');closeStart()"><span class="smi-ic">🔤</span><div>3D Text</div></div>
                         <div class="smi" onclick="launchSS('defrag');closeStart()"><span class="smi-ic">📀</span><div>Defrag 98</div></div>
                         <div class="smi" onclick="launchSS('defrag-retro');closeStart()"><span class="smi-ic">🗂️</span><div>Retro Defrag</div></div>
+                        <div class="smi" onclick="openWinamp();closeStart()"><span class="smi-ic">⚡</span><div>Winamp 2.91</div></div>
+                        <div class="smi" onclick="openSkiFree();closeStart()"><span class="smi-ic">⛷️</span><div>SkiFree (1991)</div></div>
+                        <div class="smi" onclick="openGuestbook();closeStart()"><span class="smi-ic">📖</span><div>1998 Guestbook</div></div>
+                    </div>
+                </div>
+                <div class="smi smi-parent">
+                    <span class="smi-ic">🎮</span>
+                    <div><strong>Games</strong></div>
+                    <span class="smi-arrow">▶</span>
+                    <div class="smi-sub">
+                        <div class="smi" onclick="openSkiFree();closeStart()"><span class="smi-ic">⛷️</span><div>SkiFree (1991)</div></div>
+                    </div>
+                </div>
+                <div class="smi smi-parent">
+                    <span class="smi-ic">🔊</span>
+                    <div><strong>Multimedia</strong></div>
+                    <span class="smi-arrow">▶</span>
+                    <div class="smi-sub">
+                        <div class="smi" onclick="openWinamp();closeStart()"><span class="smi-ic">⚡</span><div>Winamp 2.91</div></div>
                     </div>
                 </div>
                 <div class="smi smi-parent">
@@ -685,6 +719,7 @@
                     <div class="smi-sub">
                         <div class="smi" onclick="openNativeCalc();closeStart()"><span class="smi-ic">🧮</span><div>Calculator</div></div>
                         <div class="smi" onclick="openNativeNotepad();closeStart()"><span class="smi-ic">📝</span><div>Notepad</div></div>
+                        <div class="smi" onclick="openReadme();closeStart()"><span class="smi-ic">📝</span><div>Readme.txt</div></div>
                         <div class="smi" onclick="launchBrowser();closeStart()"><span class="smi-ic">🌐</span><div>Internet Explorer</div></div>
                     </div>
                 </div>
@@ -704,6 +739,7 @@
             <span class="smi-arrow">▶</span>
             <div class="smi-sub">
                 <div class="smi" onclick="launchBrowser();closeStart()"><span class="smi-ic">🌐</span><div>retro.bithash.cc</div></div>
+                <div class="smi" onclick="openGuestbook();closeStart()"><span class="smi-ic">📖</span><div>1998 Guestbook</div></div>
                 <div class="smi" onclick="window.open('screensavers/win31/','_self');closeStart()"><span class="smi-ic">🪟</span><div>Windows 3.1 MDI</div></div>
                 <div class="smi" onclick="window.open('screensavers/portal/','_self');closeStart()"><span class="smi-ic">🕳️</span><div>OS Portal Maze</div></div>
             </div>

@@ -21,7 +21,10 @@ const SS_META = {
     bsod: { title: 'BSOD', icon: '💀' },
     text3d: { title: '3D Text', icon: '🔤' },
     defrag: { title: 'Defrag 98', icon: '📀' },
-    'defrag-retro': { title: 'Retro Defrag', icon: '🗂️' }
+    'defrag-retro': { title: 'Retro Defrag', icon: '🗂️' },
+    winamp: { title: 'Winamp 2.91', icon: '⚡' },
+    skifree: { title: 'SkiFree (1991)', icon: '⛷️' },
+    guestbook: { title: '1998 Guestbook', icon: '📖' }
 };
 
 // Per-screensaver configurable settings
@@ -44,7 +47,10 @@ const SS_CFG = {
         speed: 1 
     },
     defrag: { speed: 1.5 },
-    'defrag-retro': { speed: 1.5 }
+    'defrag-retro': { speed: 1.5 },
+    winamp: { speed: 1.0 },
+    skifree: { speed: 1.0 },
+    guestbook: { speed: 1.0 }
 };
 
 // Track last-selected screensaver in Display Properties
@@ -151,7 +157,7 @@ function loadSSIntoWindow(id, ssKey) {
 const CYCLE = [
     'flying-windows', 'flying-toasters', 'pipes', 'maze', 'flowerbox',
     'mystify', 'starfield', 'matrix', 'dvd', 'aquarium', 'bsod',
-    'text3d', 'defrag', 'defrag-retro'
+    'text3d', 'defrag', 'defrag-retro', 'winamp', 'skifree'
 ];
 
 function cycleWin(id, dir) {
@@ -900,7 +906,9 @@ function startPreview(id) {
         maze: () => prevMaze(ctx, canvas),
         text3d: () => prevText3D(ctx, canvas),
         defrag: () => prevDefrag98(ctx, canvas),
-        'defrag-retro': () => prevDefrag(ctx, canvas)
+        'defrag-retro': () => prevDefrag(ctx, canvas),
+        winamp: () => prevWinamp(ctx, canvas),
+        skifree: () => prevSkiFree(ctx, canvas)
     }[id] || (() => {}))();
 }
 
@@ -1504,6 +1512,86 @@ function prevBSOD(ctx, c) {
     ctx.fillText('Press any key to continue _', c.width / 2, 85);
 }
 
+function prevWinamp(ctx, c) {
+    let t = 0;
+    function frame() {
+        t++;
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0, 0, c.width, c.height);
+
+        // Mini Winamp chassis
+        ctx.fillStyle = '#23272a';
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(10, 15, c.width - 20, c.height - 30);
+        ctx.fillRect(10, 15, c.width - 20, c.height - 30);
+
+        // Mini LCD
+        ctx.fillStyle = '#000';
+        ctx.fillRect(16, 22, 50, 24);
+        ctx.fillStyle = '#00ff00';
+        ctx.font = '9px monospace';
+        ctx.textAlign = 'left';
+        const s = String(t % 60).padStart(2, '0');
+        ctx.fillText(`01:${s}`, 20, 38);
+
+        // Bouncing spectrum bars
+        const bars = 12;
+        const bw = (c.width - 96) / bars;
+        for (let i = 0; i < bars; i++) {
+            const h = Math.abs(Math.sin(t * 0.15 + i * 0.5)) * 26;
+            const x = 72 + i * bw;
+            const y = 48 - h;
+            ctx.fillStyle = h > 20 ? '#ff0000' : (h > 12 ? '#ffff00' : '#00ff00');
+            ctx.fillRect(x, y, bw - 2, h);
+        }
+
+        prevAnimId = requestAnimationFrame(frame);
+    }
+    frame();
+}
+
+function prevSkiFree(ctx, c) {
+    let skierX = c.width / 2;
+    let t = 0;
+    const trees = Array.from({length: 12}, () => ({
+        x: Math.random() * c.width,
+        y: Math.random() * c.height
+    }));
+
+    function frame() {
+        t++;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, c.width, c.height);
+
+        // Move trees up
+        trees.forEach(tr => {
+            tr.y -= 1.8;
+            if (tr.y < -10) { tr.y = c.height + 10; tr.x = Math.random() * c.width; }
+            ctx.fillStyle = '#0a4211';
+            ctx.beginPath();
+            ctx.moveTo(tr.x, tr.y - 12);
+            ctx.lineTo(tr.x + 6, tr.y);
+            ctx.lineTo(tr.x - 6, tr.y);
+            ctx.fill();
+        });
+
+        // Swerve skier
+        skierX = c.width / 2 + Math.sin(t * 0.05) * 35;
+        // Draw skier
+        ctx.fillStyle = '#ffbb00';
+        ctx.fillRect(skierX - 3, 36, 2, 8);
+        ctx.fillRect(skierX + 2, 36, 2, 8);
+        ctx.fillStyle = '#0044aa';
+        ctx.fillRect(skierX - 2, 32, 5, 6);
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(skierX - 2, 28, 5, 4);
+
+        prevAnimId = requestAnimationFrame(frame);
+    }
+    frame();
+}
+
 // ── Volume Control Popup ─────────────────────────────────
 function toggleVolumeControl() {
     const pop = document.getElementById('vol-popup');
@@ -1545,6 +1633,14 @@ function execRun() {
         openNativeCalc();
     } else if (cmd === 'notepad') {
         openNativeNotepad();
+    } else if (cmd === 'readme' || cmd === 'readme.txt') {
+        openReadme();
+    } else if (cmd === 'winamp') {
+        openWinamp();
+    } else if (cmd === 'skifree' || cmd === 'ski') {
+        openSkiFree();
+    } else if (cmd === 'guestbook') {
+        openGuestbook();
     } else if (cmd === 'win31' || cmd === 'windows31') {
         window.open('screensavers/win31/', '_self');
     } else if (cmd === 'portal') {
@@ -1697,7 +1793,7 @@ function showDriveC(winId) {
         </div>`;
 }
 
-function openNativeNotepad() {
+function openNativeNotepad(customTitle = 'Untitled - Notepad', initialText = '') {
     if (Object.keys(windows).length >= MAX_WINDOWS) {
         showError('System Resources', 'Too many windows open.', '⚠️');
         return;
@@ -1711,11 +1807,12 @@ function openNativeNotepad() {
     win.id = id;
     const left = 80 + Object.keys(windows).length * 20;
     const top = 50 + Object.keys(windows).length * 20;
-    win.style.cssText = `left:${left}px;top:${top}px;width:440px;height:300px;z-index:${++nextZ};`;
+    win.style.cssText = `left:${left}px;top:${top}px;width:460px;height:320px;z-index:${++nextZ};`;
 
+    const escaped = initialText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     win.innerHTML = `
         <div class="wtb" id="tb-${id}">
-            <div class="wtb-l"><span>📝</span><span>Untitled - Notepad</span></div>
+            <div class="wtb-l"><span>📝</span><span>${customTitle}</span></div>
             <div class="wtb-btns">
                 <button onclick="minWin('${id}')">_</button>
                 <button onclick="maxWin('${id}')">□</button>
@@ -1729,7 +1826,7 @@ function openNativeNotepad() {
             <span class="mi" onclick="openAbout()">Help</span>
         </div>
         <div class="ssc" style="background:#fff;">
-            <textarea style="width:100%;height:100%;border:none;outline:none;padding:6px;font-family:'Courier New',monospace;font-size:12px;resize:none;" placeholder="Type your retro notes here..."></textarea>
+            <textarea style="width:100%;height:100%;border:none;outline:none;padding:6px;font-family:'Courier New',monospace;font-size:12px;line-height:1.4;resize:none;" placeholder="Type your retro notes here...">${escaped}</textarea>
         </div>
         <div class="wsb">
             <div class="sp">Ln 1, Col 1</div>
@@ -1742,8 +1839,61 @@ function openNativeNotepad() {
     bringToFront(win);
 
     windows[id] = { el: win, ssKey: '__notepad__', id, iframeEl: null, maxed: false };
-    addTBItem(id, { icon: '📝', title: 'Notepad' });
+    addTBItem(id, { icon: '📝', title: customTitle.split(' - ')[0] || 'Notepad' });
 }
+window.openNativeNotepad = openNativeNotepad;
+
+function openReadme() {
+    toggleDesktopNote(true);
+    const count = localStorage.getItem('retro_visitor_count') || '0042205';
+    const text = `============================================================
+           WELCOME TO RETRO SCREENSAVERS 1998
+============================================================
+
+Thank you for visiting! You are REAL visitor #${count}.
+
+SYSTEM SPECIFICATIONS:
+- Operating System: Microsoft Windows 98 Second Edition
+- Video: 1024 x 768 x 16-bit High Color
+- Audio: 16-bit Sound Blaster Pro (Procedural Web Audio)
+- RAM: 128 MB SDRAM
+- Processor: Intel Pentium II 400 MHz
+
+FEATURES & ACCESSORIES:
+- 14 Authentic Screensavers (Display Properties -> Screen Saver)
+- Windows 3.1 MDI Workspace (Double-click Windows 3.1 icon)
+- OS Time Portal (Double-click '???' black hole icon)
+- Winamp 2.91 Media Player with Chiptune Synthesizer
+- SkiFree 1991 Winter Game
+- 1998 GeoCities Guestbook
+- The Net (1995) Gatekeeper Backdoor (bottom-right π symbol)
+
+TIPS & SECRETS:
+- Press Alt+Tab to cycle active windows.
+- Press Ctrl+Shift+P to trigger the Gatekeeper backdoor.
+- Right-click the desktop to change wallpapers & color schemes.
+
+============================================================
+(C) 1998-2026. Made with Notepad. Best viewed in Netscape 4.0!
+============================================================`;
+    openNativeNotepad('Readme.txt - Notepad', text);
+}
+window.openReadme = openReadme;
+
+function openWinamp() {
+    launchSS('winamp');
+}
+window.openWinamp = openWinamp;
+
+function openSkiFree() {
+    launchSS('skifree');
+}
+window.openSkiFree = openSkiFree;
+
+function openGuestbook() {
+    launchSS('guestbook');
+}
+window.openGuestbook = openGuestbook;
 
 function openNativeCalc() {
     if (Object.keys(windows).length >= MAX_WINDOWS) {
