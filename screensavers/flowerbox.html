@@ -5,10 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D FlowerBox Screensaver — Windows 98 OpenGL Edition</title>
     <style>
-        * { margin: 0; padding: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
         canvas { display: block; width: 100%; height: 100%; }
-        .back-link { position: fixed; top: 8px; left: 8px; z-index: 999; font: 12px Tahoma, Arial, sans-serif; color: rgba(255,255,255,0.4); text-decoration: none; padding: 4px 8px; }
+        .back-link {
+            position: fixed;
+            top: 8px;
+            left: 8px;
+            z-index: 999;
+            font: 12px Tahoma, Arial, sans-serif;
+            color: rgba(255,255,255,0.4);
+            text-decoration: none;
+            padding: 4px 8px;
+        }
         .back-link:hover { color: rgba(255,255,255,0.9); }
     </style>
 </head>
@@ -16,68 +25,111 @@
     <a href="/" class="back-link">← retro.bithash.cc</a>
     <script src="../js/three.r128.min.js"></script>
     <script>
-        let cfg = { speed: 1.2, complexity: 6 };
+        let cfg = { speed: 1.2, complexity: 6, style: 'solid' };
 
         window.addEventListener('message', e => {
             if (e.origin !== 'null' && e.origin !== location.origin) return;
-            if (e.data && e.data.cfg) Object.assign(cfg, e.data.cfg);
+            if (e.data && e.data.cfg) {
+                Object.assign(cfg, e.data.cfg);
+                updateMaterialStyle();
+            }
         });
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 18;
+        camera.position.z = 17;
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         document.body.appendChild(renderer.domElement);
 
-        // Ambient and Dynamic Colored Lights
-        scene.add(new THREE.AmbientLight(0x444444));
-        const light1 = new THREE.PointLight(0xff2255, 1.5, 50);
-        light1.position.set(10, 10, 10);
-        scene.add(light1);
+        // Authentic OpenGL Lights (Bright Ambient + Crisp White Specular Highlights)
+        scene.add(new THREE.AmbientLight(0x555555, 1.2));
 
-        const light2 = new THREE.PointLight(0x00ccff, 1.5, 50);
-        light2.position.set(-10, -10, 10);
-        scene.add(light2);
+        const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.1);
+        dirLight1.position.set(14, 18, 16);
+        scene.add(dirLight1);
 
-        const light3 = new THREE.PointLight(0xffdd00, 1.2, 50);
-        light3.position.set(0, 12, -8);
-        scene.add(light3);
+        const dirLight2 = new THREE.DirectionalLight(0x99ccff, 0.7);
+        dirLight2.position.set(-14, -12, -10);
+        scene.add(dirLight2);
 
-        // Create the 6 sides of the blooming FlowerBox
-        const group = new THREE.Group();
-        scene.add(group);
+        const pointLight = new THREE.PointLight(0xffffff, 0.8, 40);
+        pointLight.position.set(0, 0, 14);
+        scene.add(pointLight);
 
-        const SIDE_COUNT = 6;
+        // Root FlowerBox Group
+        const flowerGroup = new THREE.Group();
+        scene.add(flowerGroup);
+
+        // Inner glowing geometric jewel (revealed when petals bloom)
+        const coreGeo = new THREE.OctahedronGeometry(1.5, 0);
+        const coreMat = new THREE.MeshPhongMaterial({
+            color: 0xffcc00,
+            emissive: 0x332200,
+            specular: 0xffffff,
+            shininess: 120,
+            flatShading: true
+        });
+        const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+        flowerGroup.add(coreMesh);
+
+        // 6 Cube Faces (Solid Gouraud/Phong double-sided petals, zero lattice overlay)
+        const S = 4.8;
+        const H = S / 2;
+        const SEGMENTS = 20;
+
+        const FACE_CONFIGS = [
+            { name: 'front',  normal: [0, 0, 1],  rot: [0, 0, 0],                  color: 0xe81123 }, // Ruby Red
+            { name: 'back',   normal: [0, 0, -1], rot: [0, Math.PI, 0],           color: 0xff9100 }, // Amber Gold
+            { name: 'right',  normal: [1, 0, 0],  rot: [0, Math.PI / 2, 0],       color: 0x0078d7 }, // Azure Blue
+            { name: 'left',   normal: [-1, 0, 0], rot: [0, -Math.PI / 2, 0],      color: 0x107c10 }, // Emerald Green
+            { name: 'top',    normal: [0, 1, 0],  rot: [-Math.PI / 2, 0, 0],       color: 0xb4009e }, // Electric Magenta
+            { name: 'bottom', normal: [0, -1, 0], rot: [Math.PI / 2, 0, 0],        color: 0x00bcf2 }  // Vivid Cyan
+        ];
+
         const petals = [];
 
-        for (let i = 0; i < SIDE_COUNT; i++) {
-            // Box side geometry
-            const geo = new THREE.BoxGeometry(4.5, 4.5, 0.4, 8, 8, 2);
+        FACE_CONFIGS.forEach((fc, idx) => {
+            const pivot = new THREE.Group();
+            flowerGroup.add(pivot);
+
+            // Double-sided smooth quad patch
+            const geo = new THREE.PlaneGeometry(S, S, SEGMENTS, SEGMENTS);
             const mat = new THREE.MeshPhongMaterial({
-                color: new THREE.Color().setHSL(i / SIDE_COUNT, 0.85, 0.55),
+                color: fc.color,
                 specular: 0xffffff,
-                shininess: 90,
+                shininess: 95,
                 flatShading: false,
-                side: THREE.DoubleSide
+                side: THREE.DoubleSide,
+                wireframe: cfg.style === 'wireframe'
             });
+
             const mesh = new THREE.Mesh(geo, mat);
+            mesh.rotation.set(fc.rot[0], fc.rot[1], fc.rot[2]);
+            pivot.add(mesh);
 
-            // Wireframe overlay for authentic OpenGL look
-            const wireGeo = new THREE.WireframeGeometry(geo);
-            const wireMat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 1 });
-            const wire = new THREE.LineSegments(wireGeo, wireMat);
-            mesh.add(wire);
+            // Clone initial vertex positions for procedural blooming
+            const origPos = geo.attributes.position.clone();
 
-            // Store original vertex coordinates for procedural blooming
-            const pos = geo.attributes.position;
-            const orig = pos.clone();
+            petals.push({
+                pivot,
+                mesh,
+                geo,
+                mat,
+                origPos,
+                normal: fc.normal,
+                baseRot: fc.rot
+            });
+        });
 
-            mesh.userData = { origPos: orig, index: i };
-            group.add(mesh);
-            petals.push(mesh);
+        function updateMaterialStyle() {
+            const isWire = cfg.style === 'wireframe';
+            petals.forEach(p => {
+                p.mat.wireframe = isWire;
+            });
+            coreMat.wireframe = isWire;
         }
 
         let time = 0;
@@ -85,47 +137,51 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            time += 0.02 * cfg.speed;
+            time += 0.016 * (cfg.speed || 1.2);
 
-            group.rotation.x = time * 0.6;
-            group.rotation.y = time * 0.8;
-            group.rotation.z = time * 0.3;
+            // Smooth tumbling rotation
+            flowerGroup.rotation.x = time * 0.55;
+            flowerGroup.rotation.y = time * 0.75;
+            flowerGroup.rotation.z = time * 0.32;
 
-            const bloom = Math.sin(time) * 2.2 + 2.5;
+            // Counter-rotating inner core
+            coreMesh.rotation.x = -time * 0.85;
+            coreMesh.rotation.y = -time * 1.1;
 
-            petals.forEach((petal, i) => {
-                const angle = (i / SIDE_COUNT) * Math.PI * 2;
-                const r = bloom;
+            // Blooming parameter: oscillates smoothly between closed cube and full bloom
+            const bloom = Math.sin(time * 1.2);
+            const dist = H + Math.max(-H * 0.5, bloom * 1.8);
 
-                if (i < 4) {
-                    petal.position.x = Math.cos(angle) * r;
-                    petal.position.y = Math.sin(angle) * r;
-                    petal.position.z = Math.sin(time * 1.5 + i) * 1.2;
-                    petal.rotation.z = angle + Math.sin(time * 2) * 0.4;
-                    petal.rotation.x = Math.sin(time + i) * 0.5;
-                } else if (i === 4) {
-                    petal.position.set(0, 0, r);
-                    petal.rotation.x = Math.PI / 2 + Math.cos(time) * 0.3;
-                } else {
-                    petal.position.set(0, 0, -r);
-                    petal.rotation.x = -Math.PI / 2 + Math.sin(time) * 0.3;
-                }
+            petals.forEach((p, i) => {
+                // Position each petal along its outward normal
+                p.pivot.position.set(
+                    p.normal[0] * dist,
+                    p.normal[1] * dist,
+                    p.normal[2] * dist
+                );
 
-                // Morph vertices for organic folding/blooming
-                const geo = petal.geometry;
-                const pos = geo.attributes.position;
-                const orig = petal.userData.origPos;
+                // Morph vertices into organic blooming flower petals
+                const pos = p.geo.attributes.position;
+                const orig = p.origPos;
+                const count = pos.count;
 
-                for (let v = 0; v < pos.count; v++) {
+                for (let v = 0; v < count; v++) {
                     const ox = orig.getX(v);
                     const oy = orig.getY(v);
                     const oz = orig.getZ(v);
 
-                    const wave = Math.sin(time * 2 + ox * 0.8 + oy * 0.8) * 0.5;
-                    pos.setZ(v, oz + wave);
+                    // Normalized distance from petal center [0, 1]
+                    const r = Math.sqrt((ox / H) * (ox / H) + (oy / H) * (oy / H)) / Math.SQRT2;
+
+                    // Curl edges backward away from outward normal (+Z in local space)
+                    const curl = -bloom * 1.5 * Math.pow(r, 1.4);
+                    const ripple = Math.sin(time * 2.2 + r * 3.0) * 0.2 * Math.abs(bloom);
+
+                    pos.setZ(v, oz + curl + ripple);
                 }
+
                 pos.needsUpdate = true;
-                geo.computeVertexNormals();
+                p.geo.computeVertexNormals();
             });
 
             renderer.render(scene, camera);

@@ -33,7 +33,7 @@ const SS_CFG = {
     'flying-toasters': { numToasters: 14, speed: 1.6 },
     pipes: { numPipes: 5 },
     maze: { moveSpeed: 0.014, turnSpeed: 0.045, speed: 1.0 },
-    flowerbox: { speed: 1.2, complexity: 6 },
+    flowerbox: { speed: 1.2, complexity: 6, style: 'solid' },
     mystify: { numPolys: 2, sides: 4, speed: 1.8, trailLen: 16 },
     starfield: { numStars: 350, speed: 2.0 },
     matrix: { fontSize: 16, speed: 0.35, color: '#00ff41', density: 1.0 },
@@ -625,7 +625,8 @@ const SS_SETTINGS_UI = {
     'flying-windows': `<div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="1" max="6" step="0.5" value="2.5" style="width:120px"><span id="cfg-speed-val">2.5</span></div>`,
     'flying-toasters': `<div class="drow"><label>Toasters:</label><input class="inp" id="cfg-numToasters" type="range" min="4" max="25" value="14" style="width:120px"><span id="cfg-numToasters-val">14</span></div>
         <div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.5" max="4" step="0.2" value="1.6" style="width:120px"><span id="cfg-speed-val">1.6</span></div>`,
-    flowerbox: `<div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.5" max="3" step="0.1" value="1.2" style="width:120px"><span id="cfg-speed-val">1.2</span></div>`,
+    flowerbox: `<div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.5" max="3" step="0.1" value="1.2" style="width:120px"><span id="cfg-speed-val">1.2</span></div>
+        <div class="drow"><label>Style:</label><select class="sel" id="cfg-style"><option value="solid" selected>Solid (Smooth OpenGL)</option><option value="wireframe">Wireframe</option></select></div>`,
     aquarium: `<div class="drow"><label>Fish count:</label><input class="inp" id="cfg-numFish" type="range" min="4" max="25" value="12" style="width:120px"><span id="cfg-numFish-val">12</span></div>
         <div class="drow"><label>Speed:</label><input class="inp" id="cfg-speed" type="range" min="0.5" max="3" step="0.2" value="1.2" style="width:120px"><span id="cfg-speed-val">1.2</span></div>`,
     bsod: `<div class="drow"><label>Options:</label><span style="font-size:11px;">Interactive crash screen. Press any key to reboot.</span></div>`,
@@ -1435,27 +1436,54 @@ function prevFlyingToasters(ctx, c) {
 }
 
 function prevFlowerBox(ctx, c) {
-    let ang = 0;
+    let t = 0;
+    const colors = ['#e81123', '#ff9100', '#0078d7', '#107c10', '#b4009e', '#00bcf2'];
     function frame() {
-        ang += 0.03;
+        t += 0.025;
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, c.width, c.height);
 
         ctx.save();
         ctx.translate(c.width / 2, c.height / 2);
 
-        const r = 24 + Math.sin(ang * 2) * 8;
+        const bloom = Math.sin(t * 1.4);
+        const r = 26 + bloom * 11;
+
+        // Draw 6 smooth curved petals with specular glints
         for (let i = 0; i < 6; i++) {
-            const a = (i / 6) * Math.PI * 2 + ang;
-            const x = Math.cos(a) * r, y = Math.sin(a) * r;
-            ctx.fillStyle = `hsl(${i * 60 + ang * 50}, 80%, 50%)`;
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1;
+            const a = (i / 6) * Math.PI * 2 + t * 0.7;
+            const x = Math.cos(a) * r;
+            const y = Math.sin(a) * r * 0.65; // isometric perspective
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(a + Math.sin(t * 1.8) * 0.2);
+
+            // Solid smooth petal
+            ctx.fillStyle = colors[i];
             ctx.beginPath();
-            ctx.rect(x - 8, y - 8, 16, 16);
+            ctx.ellipse(0, 0, 11 + Math.abs(bloom) * 3, 14, 0, 0, Math.PI * 2);
             ctx.fill();
-            ctx.stroke();
+
+            // Specular reflection highlight
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.beginPath();
+            ctx.ellipse(-3, -4, 4, 6, -0.4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
         }
+
+        // Inner glowing golden core
+        ctx.fillStyle = '#ffcc00';
+        ctx.beginPath();
+        const coreSize = 7 + Math.sin(t * 2.8) * 1.5;
+        ctx.arc(0, 0, coreSize, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-2, -2, coreSize * 0.4, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.restore();
         prevAnimId = requestAnimationFrame(frame);
