@@ -8,7 +8,7 @@
         body {
             background: #ffffff;
             color: #000;
-            font-family: 'Courier New', monospace;
+            font-family: 'Segoe UI', Tahoma, 'Courier New', monospace;
             overflow: hidden;
             height: 100vh;
             display: flex;
@@ -23,20 +23,53 @@
             justify-content: space-between;
             align-items: center;
             padding: 4px 10px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
             z-index: 10;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .sf-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .sf-hints {
+            color: #404040;
+            font-weight: normal;
+            font-size: 11px;
+            background: #e8e8e8;
+            padding: 2px 8px;
+            border: 1px inset #fff;
+            border-radius: 2px;
         }
         .sf-hud {
             display: flex;
-            gap: 16px;
+            align-items: center;
+            gap: 8px;
         }
         .sf-hud-item {
             background: #fff;
             border: 2px inset #808080;
-            padding: 2px 8px;
+            padding: 1px 6px;
             color: #000080;
             font-weight: bold;
+            min-width: 48px;
+            text-align: right;
+            display: inline-block;
+        }
+        .sf-hud-btn {
+            background: #c0c0c0;
+            border: 2px outset #fff;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: bold;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .sf-hud-btn:active {
+            border-style: inset;
         }
 
         #sf-canvas {
@@ -44,6 +77,30 @@
             background: #ffffff;
             display: block;
             cursor: crosshair;
+            outline: none;
+        }
+
+        /* Warning Banner */
+        .sf-banner {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #cc0000;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 13px;
+            padding: 4px 16px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            display: none;
+            z-index: 50;
+            pointer-events: none;
+            animation: sf-blink 0.5s infinite alternate;
+        }
+        @keyframes sf-blink {
+            from { opacity: 1; }
+            to { opacity: 0.4; }
         }
 
         /* Game Over / Yeti Overlay */
@@ -63,18 +120,21 @@
         .sf-modal {
             background: #c0c0c0;
             border: 3px outset #fff;
-            padding: 16px 24px;
+            padding: 20px 28px;
             color: #000;
-            box-shadow: 4px 4px 12px rgba(0,0,0,0.5);
+            box-shadow: 4px 4px 14px rgba(0,0,0,0.5);
+            max-width: 360px;
+            width: 90%;
         }
         .sf-btn {
             background: #c0c0c0;
             border: 2px outset #fff;
-            padding: 6px 16px;
+            padding: 6px 18px;
             font-family: inherit;
             font-weight: bold;
+            font-size: 12px;
             cursor: pointer;
-            margin-top: 12px;
+            margin-top: 14px;
         }
         .sf-btn:active { border-style: inset; }
     </style>
@@ -82,20 +142,30 @@
 <body>
 
     <div class="sf-header">
-        <div>⛷️ SkiFree (1991) — Windows Entertainment Pack</div>
+        <div class="sf-title">
+            <span>⛷️</span>
+            <span>SkiFree (1991)</span>
+        </div>
+        <div class="sf-hints">
+            Mouse / ◀ ▶ = Steer | Click / Space = Jump | 'F' = Turbo
+        </div>
         <div class="sf-hud">
             <div>DIST: <span class="sf-hud-item" id="sf-dist">0 m</span></div>
-            <div>SPEED: <span class="sf-hud-item" id="sf-speed">15 mph</span></div>
+            <div>SPEED: <span class="sf-hud-item" id="sf-speed">0 mph</span></div>
             <div>SCORE: <span class="sf-hud-item" id="sf-score">0</span></div>
+            <button class="sf-hud-btn" id="sf-sound-btn" onclick="toggleSound()">🔊 ON</button>
+            <button class="sf-hud-btn" onclick="resetGame()">↻ Restart</button>
         </div>
     </div>
 
-    <canvas id="sf-canvas"></canvas>
+    <div class="sf-banner" id="sf-yeti-banner">⚠️ ABOMINABLE SNOW MONSTER INCOMING! PRESS 'F' FOR TURBO!</div>
+
+    <canvas id="sf-canvas" tabindex="0"></canvas>
 
     <div class="sf-overlay" id="sf-modal">
         <div class="sf-modal">
-            <h2 id="sf-modal-title" style="color:#aa0000; margin-bottom:8px;">YETI ATTACK!</h2>
-            <p id="sf-modal-msg">You were caught by the Abominable Snow Monster!</p>
+            <h2 id="sf-modal-title" style="color:#aa0000; margin-bottom:8px;">CHOMPED BY YETI!</h2>
+            <p id="sf-modal-msg" style="line-height:1.4; font-size:12px;">You were caught by the Abominable Snow Monster!</p>
             <button class="sf-btn" onclick="resetGame()">[ Play Again (R) ]</button>
         </div>
     </div>
@@ -106,37 +176,188 @@
 
         function resize() {
             canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight - 30;
+            canvas.height = window.innerHeight - 32;
         }
         resize();
         window.addEventListener('resize', resize);
 
-        // Game State
+        // Auto-focus canvas so keyboard inputs work immediately
+        window.focus();
+        canvas.focus();
+        window.addEventListener('click', () => window.focus());
+        canvas.addEventListener('pointerdown', () => { window.focus(); canvas.focus(); });
+
+        // ── Procedural Web Audio Sound Synthesizer ─────────────────
+        let soundEnabled = true;
+        try {
+            const savedSound = localStorage.getItem('skifree_sound');
+            if (savedSound !== null) soundEnabled = savedSound === 'true';
+        } catch (e) {}
+
+        let audioCtx = null;
+        function getAudio() {
+            if (!soundEnabled) return null;
+            if (!audioCtx) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) audioCtx = new AudioCtx();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            return audioCtx;
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            try { localStorage.setItem('skifree_sound', String(soundEnabled)); } catch (e) {}
+            const btn = document.getElementById('sf-sound-btn');
+            if (btn) btn.textContent = soundEnabled ? '🔊 ON' : '🔈 OFF';
+        }
+        const initialSoundBtn = document.getElementById('sf-sound-btn');
+        if (initialSoundBtn) initialSoundBtn.textContent = soundEnabled ? '🔊 ON' : '🔈 OFF';
+
+        function playJumpSound() {
+            const actx = getAudio();
+            if (!actx) return;
+            const osc = actx.createOscillator();
+            const gain = actx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(240, actx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(620, actx.currentTime + 0.18);
+            gain.gain.setValueAtTime(0.25, actx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.22);
+            osc.connect(gain);
+            gain.connect(actx.destination);
+            osc.start();
+            osc.stop(actx.currentTime + 0.22);
+        }
+
+        function playRampSound() {
+            const actx = getAudio();
+            if (!actx) return;
+            [523, 659, 784].forEach((freq, i) => {
+                const osc = actx.createOscillator();
+                const gain = actx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(freq, actx.currentTime + i * 0.06);
+                gain.gain.setValueAtTime(0.15, actx.currentTime + i * 0.06);
+                gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + i * 0.06 + 0.2);
+                osc.connect(gain);
+                gain.connect(actx.destination);
+                osc.start(actx.currentTime + i * 0.06);
+                osc.stop(actx.currentTime + i * 0.06 + 0.2);
+            });
+        }
+
+        function playCrashSound() {
+            const actx = getAudio();
+            if (!actx) return;
+            const osc = actx.createOscillator();
+            const gain = actx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(140, actx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(35, actx.currentTime + 0.25);
+            gain.gain.setValueAtTime(0.35, actx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.28);
+            osc.connect(gain);
+            gain.connect(actx.destination);
+            osc.start();
+            osc.stop(actx.currentTime + 0.28);
+        }
+
+        function playTrickSound() {
+            const actx = getAudio();
+            if (!actx) return;
+            const osc = actx.createOscillator();
+            const gain = actx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, actx.currentTime);
+            gain.gain.setValueAtTime(0.2, actx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(actx.destination);
+            osc.start();
+            osc.stop(actx.currentTime + 0.15);
+        }
+
+        function playYetiRoarSound() {
+            const actx = getAudio();
+            if (!actx) return;
+            const osc = actx.createOscillator();
+            const gain = actx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(90, actx.currentTime);
+            osc.frequency.linearRampToValueAtTime(60, actx.currentTime + 0.6);
+            gain.gain.setValueAtTime(0.3, actx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.7);
+            osc.connect(gain);
+            gain.connect(actx.destination);
+            osc.start();
+            osc.stop(actx.currentTime + 0.7);
+        }
+
+        function playYetiChompSound() {
+            const actx = getAudio();
+            if (!actx) return;
+            [0, 0.15, 0.3].forEach((del) => {
+                const osc = actx.createOscillator();
+                const gain = actx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(160, actx.currentTime + del);
+                osc.frequency.linearRampToValueAtTime(80, actx.currentTime + del + 0.08);
+                gain.gain.setValueAtTime(0.3, actx.currentTime + del);
+                gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + del + 0.09);
+                osc.connect(gain);
+                gain.connect(actx.destination);
+                osc.start(actx.currentTime + del);
+                osc.stop(actx.currentTime + del + 0.09);
+            });
+        }
+
+        // ── Game State ────────────────────────────────────────────
         let dist = 0;
         let score = 0;
         let speed = 4;
+        let baseSpeed = 4;
+        let turbo = false;
         let angle = 0; // -2 = hard left, -1 = left, 0 = down, 1 = right, 2 = hard right
         let isJumping = false;
+        let jumpHeight = 0;
         let jumpProgress = 0;
+        let jumpDuration = 22; // frames
+        let isRampJump = false;
+        let stuntAngle = 0;
         let isCrashed = false;
+        let crashTimer = 0;
+        let invulnerableTimer = 0; // i-frames after getting up
         let isEaten = false;
+        let eatingFrame = 0;
         let gameActive = true;
 
         // Player Position (Screen-relative)
         let playerX = canvas.width / 2;
-        let playerY = 120;
+        let playerY = 130;
+
+        // Mouse Controls
+        let mouseControl = false;
+        let mouseX = playerX;
+        let mouseY = playerY + 120;
+
+        // Floating score bubbles & Ski tracks
+        let popups = [];
+        let tracks = [];
 
         // Obstacles array
-        const OBSTACLE_TYPES = ['tree_small', 'tree_large', 'rock', 'stump', 'ramp', 'dead_tree'];
+        const OBSTACLE_TYPES = ['tree_small', 'tree_large', 'rock', 'stump', 'ramp', 'dead_tree', 'mogul', 'slalom'];
         let obstacles = [];
 
         function spawnObstacles() {
             obstacles = [];
-            for (let i = 0; i < 40; i++) {
+            for (let i = 0; i < 45; i++) {
                 obstacles.push({
-                    x: Math.random() * canvas.width * 1.5 - canvas.width * 0.25,
-                    y: 200 + Math.random() * canvas.height * 2,
-                    type: OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)]
+                    x: Math.random() * (canvas.width + 200) - 100,
+                    y: 180 + Math.random() * canvas.height * 2.2,
+                    type: OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)],
+                    hit: false,
+                    passedSlalom: false
                 });
             }
         }
@@ -147,9 +368,75 @@
             active: false,
             x: 0,
             y: -100,
-            speed: 8,
-            frame: 0
+            speed: 8.4,
+            frame: 0,
+            state: 'running' // 'running' | 'eating'
         };
+
+        // ── Input Event Listeners ─────────────────────────────────
+
+        // Mouse Steering & Speed Control (Authentic 1991 SkiFree feel)
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            mouseControl = true;
+        });
+
+        canvas.addEventListener('mousedown', e => {
+            if (e.button !== 0) return; // Left click only
+            handleJumpOrRecover();
+        });
+
+        // Touch support for Mobile / Tablets
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches.length > 0) {
+                mouseX = e.touches[0].clientX - rect.left;
+                mouseY = e.touches[0].clientY - rect.top;
+                mouseControl = true;
+                handleJumpOrRecover();
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', e => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches.length > 0) {
+                mouseX = e.touches[0].clientX - rect.left;
+                mouseY = e.touches[0].clientY - rect.top;
+                mouseControl = true;
+            }
+        }, { passive: false });
+
+        function handleJumpOrRecover() {
+            if (!gameActive) {
+                resetGame();
+                return;
+            }
+            if (isCrashed) {
+                recoverFromCrash();
+                return;
+            }
+            if (!isJumping) {
+                isJumping = true;
+                jumpHeight = 0;
+                jumpProgress = 0;
+                jumpDuration = 22;
+                isRampJump = false;
+                stuntAngle = 0;
+                playJumpSound();
+            }
+        }
+
+        function recoverFromCrash() {
+            isCrashed = false;
+            crashTimer = 0;
+            invulnerableTimer = 90; // ~1.5 seconds i-frames so player can steer away
+            angle = 0;
+            speed = baseSpeed;
+        }
 
         // Keyboard Controls
         window.addEventListener('keydown', e => {
@@ -157,59 +444,110 @@
                 if (e.key === 'r' || e.key === 'R') resetGame();
                 return;
             }
-            if (e.key === 'ArrowLeft') {
-                angle = Math.max(-2, angle - 1);
-            } else if (e.key === 'ArrowRight') {
-                angle = Math.min(2, angle + 1);
-            } else if (e.key === 'ArrowDown') {
-                speed = 7; // Fast tuck
-            } else if (e.key === 'ArrowUp') {
-                speed = 2; // Snowplow brake
-            } else if (e.key === ' ' || e.key === 'f' || e.key === 'F') {
-                if (!isJumping && !isCrashed) {
-                    isJumping = true;
-                    jumpProgress = 0;
+
+            // Keyboard overrides mouse temporarily
+            mouseControl = false;
+
+            if (isCrashed) {
+                // Any key immediately recovers the skier!
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'f', 'F', 'w', 'a', 's', 'd'].includes(e.key)) {
+                    recoverFromCrash();
+                    return;
                 }
+            }
+
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                angle = Math.max(-2, angle - 1);
+                if (isJumping) stuntAngle -= 45;
+            } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                angle = Math.min(2, angle + 1);
+                if (isJumping) stuntAngle += 45;
+            } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+                speed = turbo ? 11 : 8.5; // Tuck position
+            } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                speed = 2; // Snowplow brake
+            } else if (e.key === ' ' || e.key === 'Enter') {
+                handleJumpOrRecover();
+            } else if (e.key === 'f' || e.key === 'F') {
+                turbo = !turbo;
+                speed = turbo ? 10.5 : baseSpeed;
+                addPopup(playerX, playerY - 20, turbo ? 'TURBO ON!' : 'TURBO OFF', '#0044aa');
             } else if (e.key === 'r' || e.key === 'R') {
                 resetGame();
+            } else if ((e.key === 'y' || e.key === 'Y') && e.ctrlKey) {
+                // Easter egg: summon Yeti immediately!
+                dist = 1850;
             }
         });
 
         window.addEventListener('keyup', e => {
-            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-                speed = 4;
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 's' || e.key === 'w') {
+                speed = turbo ? 10 : baseSpeed;
             }
         });
 
-        // Drawing Sprites using Canvas 2D Pixel Art
+        function addPopup(x, y, text, color = '#ff8800') {
+            popups.push({ x, y, text, color, life: 40 });
+        }
+
+        // ── Drawing Sprites (Authentic Windows 1991 SkiFree Pixel Art) ──
+
         function drawSkier(x, y) {
             ctx.save();
             ctx.translate(x, y);
 
+            // Invulnerability flashing effect (grace period)
+            if (invulnerableTimer > 0 && Math.floor(invulnerableTimer / 4) % 2 === 0) {
+                ctx.globalAlpha = 0.35;
+            }
+
             if (isCrashed) {
-                // Skier crashed into snow (skis in air, red boots)
-                ctx.fillStyle = '#ff0000';
+                // Skier crashed into snow (skis in air, red boots, comical daze)
+                ctx.fillStyle = '#ff0000'; // Boots
                 ctx.fillRect(-6, -14, 3, 10);
                 ctx.fillRect(3, -14, 3, 10);
-                // Yellow skis
+
+                // Yellow skis crossed in air
                 ctx.fillStyle = '#ffbb00';
-                ctx.fillRect(-8, -18, 7, 3);
-                ctx.fillRect(1, -18, 7, 3);
-                // Head in snow with puff
+                ctx.fillRect(-9, -18, 8, 3);
+                ctx.fillRect(1, -18, 8, 3);
+
+                // Head buried in snow puff
                 ctx.fillStyle = '#d0d8e8';
-                ctx.beginPath(); ctx.arc(0, 2, 8, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(0, 2, 9, 0, Math.PI * 2); ctx.fill();
+
+                // "OOF!" cartoon text
+                ctx.fillStyle = '#cc0000';
+                ctx.font = 'bold 11px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('OOF!', 0, -26);
+
                 ctx.restore();
                 return;
             }
 
             if (isJumping) {
-                // High air jump tuck
+                // Air shadow on snow below skier
+                ctx.save();
+                ctx.fillStyle = 'rgba(160, 180, 210, 0.4)';
+                ctx.beginPath();
+                ctx.ellipse(0, jumpHeight * 22, 12, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // Raise skier into air
+                ctx.translate(0, -jumpHeight * 24);
+                if (stuntAngle !== 0) ctx.rotate(stuntAngle * Math.PI / 180);
+
+                // Air jump tuck / spread
                 ctx.fillStyle = '#ffbb00'; // Skis
-                ctx.fillRect(-12, 10, 24, 3);
+                ctx.fillRect(-14, 8, 28, 3);
                 ctx.fillStyle = '#0044aa'; // Blue suit
-                ctx.fillRect(-5, -6, 10, 14);
-                ctx.fillStyle = '#ff0000'; // Hat
-                ctx.fillRect(-4, -12, 8, 6);
+                ctx.fillRect(-5, -8, 10, 15);
+                ctx.fillStyle = '#ffccaa'; // Face
+                ctx.fillRect(-3, -13, 6, 5);
+                ctx.fillStyle = '#ff0000'; // Red hat
+                ctx.fillRect(-4, -16, 8, 4);
                 ctx.restore();
                 return;
             }
@@ -217,14 +555,25 @@
             // Normal Skiing according to angle
             ctx.fillStyle = '#ffbb00'; // Skis
             if (angle === 0) {
-                ctx.fillRect(-6, -4, 3, 16);
-                ctx.fillRect(3, -4, 3, 16);
-            } else if (angle < 0) {
-                ctx.fillRect(-8, -2, 14, 3);
-                ctx.fillRect(-6, 4, 14, 3);
-            } else {
-                ctx.fillRect(-6, -2, 14, 3);
-                ctx.fillRect(-8, 4, 14, 3);
+                // Straight downhill
+                ctx.fillRect(-6, -4, 3, 17);
+                ctx.fillRect(3, -4, 3, 17);
+            } else if (angle === -1) {
+                // Left diagonal
+                ctx.fillRect(-8, -4, 14, 3);
+                ctx.fillRect(-6, 2, 14, 3);
+            } else if (angle === -2) {
+                // Hard left (perpendicular carve snowplow)
+                ctx.fillRect(-10, -6, 17, 3);
+                ctx.fillRect(-10, 1, 17, 3);
+            } else if (angle === 1) {
+                // Right diagonal
+                ctx.fillRect(-6, -4, 14, 3);
+                ctx.fillRect(-8, 2, 14, 3);
+            } else if (angle === 2) {
+                // Hard right (perpendicular carve snowplow)
+                ctx.fillRect(-7, -6, 17, 3);
+                ctx.fillRect(-7, 1, 17, 3);
             }
 
             // Skier body (Blue jacket)
@@ -237,12 +586,20 @@
             ctx.fillStyle = '#ff0000';
             ctx.fillRect(-4, -16, 8, 4);
 
-            // Poles
-            ctx.strokeStyle = '#555';
+            // Ski Poles
+            ctx.strokeStyle = '#333';
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.moveTo(-6, -4); ctx.lineTo(-10, 6);
-            ctx.moveTo(6, -4); ctx.lineTo(10, 6);
+            if (angle < 0) {
+                ctx.moveTo(-6, -3); ctx.lineTo(-12, 5);
+                ctx.moveTo(4, -3); ctx.lineTo(-2, 7);
+            } else if (angle > 0) {
+                ctx.moveTo(6, -3); ctx.lineTo(12, 5);
+                ctx.moveTo(-4, -3); ctx.lineTo(2, 7);
+            } else {
+                ctx.moveTo(-6, -4); ctx.lineTo(-10, 6);
+                ctx.moveTo(6, -4); ctx.lineTo(10, 6);
+            }
             ctx.stroke();
 
             ctx.restore();
@@ -253,7 +610,7 @@
             ctx.translate(ob.x, ob.y);
 
             if (ob.type === 'tree_small') {
-                // Pine tree
+                // Classic Green Pine Tree
                 ctx.fillStyle = '#0e5c18';
                 ctx.beginPath();
                 ctx.moveTo(0, -22); ctx.lineTo(12, 0); ctx.lineTo(-12, 0); ctx.fill();
@@ -262,6 +619,7 @@
                 ctx.fillStyle = '#5c3310';
                 ctx.fillRect(-2, 10, 4, 6);
             } else if (ob.type === 'tree_large') {
+                // Giant Dark Pine
                 ctx.fillStyle = '#0a4211';
                 ctx.beginPath();
                 ctx.moveTo(0, -34); ctx.lineTo(16, -6); ctx.lineTo(-16, -6); ctx.fill();
@@ -270,30 +628,51 @@
                 ctx.fillStyle = '#5c3310';
                 ctx.fillRect(-3, 12, 6, 8);
             } else if (ob.type === 'rock') {
+                // Grey stone with snow cap
                 ctx.fillStyle = '#606870';
-                ctx.beginPath();
-                ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill();
-                ctx.fillStyle = '#808890';
-                ctx.fillRect(-4, -5, 6, 4);
+                ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#e0e8f0';
+                ctx.beginPath(); ctx.arc(0, -3, 6, Math.PI, 0); ctx.fill();
             } else if (ob.type === 'stump') {
+                // Tree Stump
                 ctx.fillStyle = '#6e4420';
                 ctx.fillRect(-6, -4, 12, 8);
                 ctx.fillStyle = '#aa7744';
                 ctx.beginPath(); ctx.ellipse(0, -4, 6, 2, 0, 0, Math.PI * 2); ctx.fill();
             } else if (ob.type === 'ramp') {
-                // Jump ramp
+                // High Jump Ramp (Yellow / Striped lip)
                 ctx.fillStyle = '#d0d8e8';
                 ctx.beginPath();
-                ctx.moveTo(-16, 6); ctx.lineTo(16, 6); ctx.lineTo(0, -8); ctx.fill();
+                ctx.moveTo(-16, 8); ctx.lineTo(16, 8); ctx.lineTo(0, -8); ctx.fill();
                 ctx.strokeStyle = '#90a0c0';
                 ctx.stroke();
+                ctx.fillStyle = '#ffbb00';
+                ctx.fillRect(-12, 6, 24, 2);
             } else if (ob.type === 'dead_tree') {
+                // Bare winter branches
                 ctx.strokeStyle = '#443322';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(0, 8); ctx.lineTo(0, -18);
                 ctx.lineTo(-8, -26); ctx.moveTo(0, -10); ctx.lineTo(8, -20);
                 ctx.stroke();
+            } else if (ob.type === 'mogul') {
+                // Snow bump / Mogul
+                ctx.fillStyle = '#e4ecf4';
+                ctx.beginPath();
+                ctx.arc(0, 0, 10, Math.PI, 0);
+                ctx.fill();
+                ctx.strokeStyle = '#b0c4d8';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            } else if (ob.type === 'slalom') {
+                // Red and Blue Slalom poles
+                ctx.fillStyle = '#cc0000';
+                ctx.fillRect(-20, -16, 2, 16);
+                ctx.fillRect(-24, -16, 6, 5); // Red flag
+                ctx.fillStyle = '#0044aa';
+                ctx.fillRect(20, -16, 2, 16);
+                ctx.fillRect(20, -16, 6, 5); // Blue flag
             }
 
             ctx.restore();
@@ -304,108 +683,259 @@
             ctx.save();
             ctx.translate(yeti.x, yeti.y);
 
-            // Grey fluffy beast
+            if (isEaten) {
+                // Eating / Chomping animation!
+                eatingFrame++;
+                ctx.fillStyle = '#6a7278';
+                ctx.fillRect(-18, -24, 36, 38);
+                ctx.beginPath(); ctx.arc(0, -24, 16, 0, Math.PI * 2); ctx.fill();
+
+                // Open mouth with red throat
+                const mouthOpen = (Math.floor(eatingFrame / 10) % 2 === 0) ? 14 : 4;
+                ctx.fillStyle = '#aa0000';
+                ctx.fillRect(-8, -20, 16, mouthOpen);
+
+                // Teeth
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-8, -20, 16, 2);
+                ctx.fillRect(-8, -20 + mouthOpen - 2, 16, 2);
+
+                // Skier legs sticking out of mouth!
+                if (eatingFrame < 80) {
+                    ctx.fillStyle = '#0044aa';
+                    ctx.fillRect(-3, -20 + mouthOpen, 6, 8);
+                    ctx.fillStyle = '#ffbb00';
+                    ctx.fillRect(-6, -12 + mouthOpen, 12, 2);
+                } else {
+                    // Toothpick ski
+                    ctx.fillStyle = '#ffbb00';
+                    ctx.fillRect(6, -24, 12, 2);
+                }
+
+                // Eyes
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(-6, -28, 4, 4);
+                ctx.fillRect(2, -28, 4, 4);
+
+                ctx.restore();
+                return;
+            }
+
+            // Running Yeti
+            const armSwing = Math.sin(yeti.frame * 0.35) * 10;
+            const legSwing = Math.cos(yeti.frame * 0.35) * 8;
+
+            // Fluffy grey body
             ctx.fillStyle = '#7a8288';
-            ctx.fillRect(-14, -20, 28, 30);
-            ctx.beginPath(); ctx.arc(0, -22, 12, 0, Math.PI * 2); ctx.fill();
+            ctx.fillRect(-16, -22, 32, 34);
+            ctx.beginPath(); ctx.arc(0, -24, 14, 0, Math.PI * 2); ctx.fill();
+
+            // Legs
+            ctx.fillStyle = '#5a6268';
+            ctx.fillRect(-12, 10 + legSwing, 8, 12);
+            ctx.fillRect(4, 10 - legSwing, 8, 12);
 
             // Claws and arms
-            const armSwing = Math.sin(yeti.frame * 0.3) * 8;
-            ctx.fillStyle = '#5a6268';
-            ctx.fillRect(-22, -18 + armSwing, 8, 20);
-            ctx.fillRect(14, -18 - armSwing, 8, 20);
+            ctx.fillRect(-24, -18 + armSwing, 8, 22);
+            ctx.fillRect(16, -18 - armSwing, 8, 22);
 
-            // Face (menacing red eyes, sharp fangs)
+            // Menacing red eyes & sharp fangs
             ctx.fillStyle = '#ff0000';
-            ctx.fillRect(-5, -24, 3, 3);
-            ctx.fillRect(2, -24, 3, 3);
+            ctx.fillRect(-6, -27, 4, 4);
+            ctx.fillRect(2, -27, 4, 4);
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(-4, -16, 8, 4); // Mouth
+            ctx.fillRect(-6, -18, 12, 5); // Mouth
             ctx.fillStyle = '#000000';
-            ctx.fillRect(-2, -15, 4, 2);
+            ctx.fillRect(-4, -16, 8, 2);
 
             ctx.restore();
         }
 
+        // ── Game Loop & Update Logic ──────────────────────────────
+
         function update() {
             if (!gameActive) return;
 
-            // Skier movement
-            let dx = 0;
-            if (angle === -2) dx = -speed * 1.5;
-            else if (angle === -1) dx = -speed * 0.8;
-            else if (angle === 1) dx = speed * 0.8;
-            else if (angle === 2) dx = speed * 1.5;
+            // Mouse Steering logic
+            if (mouseControl && !isCrashed) {
+                const relX = mouseX - playerX;
+                const relY = mouseY - playerY;
 
-            playerX = Math.max(40, Math.min(canvas.width - 40, playerX + dx));
+                // Angle based on horizontal delta
+                if (relX < -85) angle = -2;
+                else if (relX < -25) angle = -1;
+                else if (relX > 85) angle = 2;
+                else if (relX > 25) angle = 1;
+                else angle = 0;
 
-            // Jump handling
-            if (isJumping) {
-                jumpProgress += 0.05;
-                if (jumpProgress >= 1) {
-                    isJumping = false;
-                    jumpProgress = 0;
-                    score += 250; // Trick bonus
+                // Speed based on vertical delta
+                if (relY < -20) {
+                    // Pulling mouse up = stop!
+                    speed = 0;
+                } else if (relY < 40) {
+                    speed = 2;
+                } else if (relY < 160) {
+                    speed = turbo ? 10 : baseSpeed;
+                } else {
+                    // Far down = fast downhill tuck!
+                    speed = turbo ? 11 : 8.5;
                 }
             }
 
-            // Scroll world down
-            const moveY = isCrashed ? 0 : speed;
-            dist += Math.floor(moveY);
-            score += Math.floor(moveY * 0.5);
+            // Skier horizontal movement
+            let dx = 0;
+            if (angle === -2) dx = -speed * 1.5;
+            else if (angle === -1) dx = -speed * 0.85;
+            else if (angle === 1) dx = speed * 0.85;
+            else if (angle === 2) dx = speed * 1.5;
 
-            // Obstacle updates
+            playerX = Math.max(30, Math.min(canvas.width - 30, playerX + dx));
+
+            // Jump handling
+            if (isJumping) {
+                jumpProgress += (1 / jumpDuration);
+                // Parabolic jump arc
+                jumpHeight = Math.sin(jumpProgress * Math.PI);
+                if (jumpProgress >= 1) {
+                    isJumping = false;
+                    jumpHeight = 0;
+                    jumpProgress = 0;
+                    stuntAngle = 0;
+                    score += isRampJump ? 500 : 150;
+                    addPopup(playerX, playerY - 30, isRampJump ? '+500 TRICK!' : '+150 JUMP!', '#ffbb00');
+                    playTrickSound();
+                }
+            }
+
+            // Crash handling
+            if (isCrashed) {
+                crashTimer--;
+                if (crashTimer <= 0) {
+                    recoverFromCrash();
+                }
+            }
+
+            if (invulnerableTimer > 0) {
+                invulnerableTimer--;
+            }
+
+            // Scroll mountain down
+            const moveY = isCrashed ? 0 : speed;
+            dist += Math.floor(moveY * 0.4);
+            score += Math.floor(moveY * 0.25);
+
+            // Record ski tracks
+            if (!isCrashed && !isJumping && speed > 0 && Math.abs(angle) < 2) {
+                tracks.push({ x1: playerX - 5, x2: playerX + 5, y: playerY + 6, life: 1.0 });
+                if (tracks.length > 180) tracks.shift();
+            }
+
+            // Move ski tracks
+            tracks.forEach(tr => {
+                tr.y -= moveY;
+                tr.life -= 0.005;
+            });
+            tracks = tracks.filter(tr => tr.y > -20 && tr.life > 0);
+
+            // Popups
+            popups.forEach(p => {
+                p.y -= 1.2;
+                p.life--;
+            });
+            popups = popups.filter(p => p.life > 0);
+
+            // Obstacle updates & collisions
             obstacles.forEach(ob => {
                 ob.y -= moveY;
                 if (ob.y < -40) {
-                    ob.y = canvas.height + 60 + Math.random() * 200;
-                    ob.x = Math.random() * canvas.width;
+                    ob.y = canvas.height + 60 + Math.random() * 260;
+                    ob.x = Math.random() * (canvas.width + 100) - 50;
                     ob.type = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
+                    ob.hit = false;
+                    ob.passedSlalom = false;
+                }
+
+                // Slalom gate passing logic
+                if (ob.type === 'slalom' && !ob.passedSlalom) {
+                    if (Math.abs(ob.y - playerY) < 12 && Math.abs(ob.x - playerX) < 18) {
+                        ob.passedSlalom = true;
+                        score += 300;
+                        addPopup(playerX, playerY - 24, '+300 SLALOM!', '#00aa00');
+                        playTrickSound();
+                    }
                 }
 
                 // Collision detection
-                if (!isCrashed && !isJumping) {
+                if (!isCrashed && !ob.hit && invulnerableTimer <= 0) {
                     const distToPlayer = Math.hypot(ob.x - playerX, ob.y - playerY);
-                    if (distToPlayer < 16) {
+
+                    if (distToPlayer < 18) {
                         if (ob.type === 'ramp') {
+                            // Jump off ramp!
                             isJumping = true;
                             jumpProgress = 0;
+                            jumpDuration = 34; // Long high jump!
+                            isRampJump = true;
+                            playRampSound();
+                        } else if (ob.type === 'mogul') {
+                            // Mini snow hop
+                            if (!isJumping) {
+                                isJumping = true;
+                                jumpProgress = 0;
+                                jumpDuration = 14;
+                                playJumpSound();
+                            }
+                        } else if (isJumping && jumpHeight > 0.25 && ob.type !== 'tree_large') {
+                            // Successfully cleared obstacle with jump!
+                            score += 100;
+                            addPopup(playerX, playerY - 25, '+100 CLEARED!', '#22aa22');
+                            ob.hit = true;
                         } else {
                             // Crash!
                             isCrashed = true;
+                            crashTimer = 55;
                             speed = 0;
-                            setTimeout(() => {
-                                if (!isEaten) {
-                                    isCrashed = false;
-                                    speed = 4;
-                                }
-                            }, 1200);
+                            playCrashSound();
+                            // PUSH OBSTACLE UPHILL AND MARK AS HIT SO IT NEVER RE-COLLIDES!
+                            ob.hit = true;
+                            ob.y = playerY - 45;
                         }
                     }
                 }
             });
 
-            // Yeti appears past 1500m
-            if (dist > 1500 && !yeti.active && !isEaten) {
+            // The Yeti appears past 1,800m
+            const banner = document.getElementById('sf-yeti-banner');
+            if (dist > 1800 && !yeti.active && !isEaten) {
                 yeti.active = true;
                 yeti.x = playerX;
-                yeti.y = -60;
+                yeti.y = -80;
+                if (banner) banner.style.display = 'block';
+                playYetiRoarSound();
             }
 
             // Yeti pursuit logic
             if (yeti.active && !isEaten) {
                 yeti.frame++;
-                if (yeti.x < playerX) yeti.x += 2.5;
-                else if (yeti.x > playerX) yeti.x -= 2.5;
+                if (yeti.x < playerX) yeti.x += 2.6;
+                else if (yeti.x > playerX) yeti.x -= 2.6;
+
+                // Yeti speed relative to skier movement
                 yeti.y += (yeti.speed - moveY);
 
                 // Caught by Yeti!
-                if (Math.hypot(yeti.x - playerX, yeti.y - playerY) < 22) {
+                if (Math.hypot(yeti.x - playerX, yeti.y - playerY) < 26) {
                     isEaten = true;
                     gameActive = false;
-                    document.getElementById('sf-modal-title').textContent = 'CHOMPED BY YETI!';
-                    document.getElementById('sf-modal-msg').textContent = `The Abominable Snow Monster caught you at ${dist}m! Final Score: ${score}`;
-                    document.getElementById('sf-modal').classList.add('visible');
+                    eatingFrame = 0;
+                    if (banner) banner.style.display = 'none';
+                    playYetiChompSound();
+
+                    setTimeout(() => {
+                        document.getElementById('sf-modal-title').textContent = 'CHOMPED BY YETI!';
+                        document.getElementById('sf-modal-msg').textContent = `The Abominable Snow Monster caught you at ${dist}m! Final Score: ${score}`;
+                        document.getElementById('sf-modal').classList.add('visible');
+                    }, 1400);
                 }
             }
 
@@ -419,9 +949,15 @@
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw ski track trails
-            ctx.strokeStyle = '#e0e8f0';
-            ctx.lineWidth = 2;
+            // Draw ski track trails in powder snow
+            ctx.strokeStyle = '#c8d8e8';
+            ctx.lineWidth = 1.5;
+            tracks.forEach(tr => {
+                ctx.beginPath();
+                ctx.moveTo(tr.x1, tr.y); ctx.lineTo(tr.x1, tr.y + 4);
+                ctx.moveTo(tr.x2, tr.y); ctx.lineTo(tr.x2, tr.y + 4);
+                ctx.stroke();
+            });
 
             // Draw obstacles
             obstacles.forEach(drawObstacle);
@@ -431,6 +967,14 @@
 
             // Draw Yeti
             drawYeti();
+
+            // Draw floating score popups
+            popups.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.font = 'bold 12px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.text, p.x, p.y);
+            });
         }
 
         function loop() {
@@ -443,16 +987,28 @@
         function resetGame() {
             dist = 0;
             score = 0;
-            speed = 4;
+            speed = baseSpeed;
+            turbo = false;
             angle = 0;
             isCrashed = false;
+            crashTimer = 0;
+            invulnerableTimer = 0;
             isEaten = false;
+            eatingFrame = 0;
             isJumping = false;
+            jumpHeight = 0;
+            jumpProgress = 0;
+            stuntAngle = 0;
             yeti.active = false;
             yeti.y = -100;
             gameActive = true;
+            tracks = [];
+            popups = [];
             document.getElementById('sf-modal').classList.remove('visible');
+            const banner = document.getElementById('sf-yeti-banner');
+            if (banner) banner.style.display = 'none';
             spawnObstacles();
+            canvas.focus();
         }
     </script>
 </body>

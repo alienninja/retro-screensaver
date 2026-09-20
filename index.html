@@ -51,7 +51,28 @@
     <!-- Favicon: Win98-style monitor emoji as SVG favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
 
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=1.2.0">
+
+    <!-- Early global application stubs: guarantees handlers never throw ReferenceError -->
+    <script>
+        window.launchSS = window.launchSS || function(key) {
+            if (window._launchSS) return window._launchSS(key);
+            window._pendingSS = key;
+        };
+        window.openWinamp = window.openWinamp || function() { window.launchSS('winamp'); };
+        window.openSkiFree = window.openSkiFree || function() { window.launchSS('skifree'); };
+        window.openGuestbook = window.openGuestbook || function() { window.launchSS('guestbook'); };
+        window.openReadme = window.openReadme || function() {
+            if (window._openReadme) return window._openReadme();
+            window._pendingReadme = true;
+        };
+        window.openDP = window.openDP || function() { if (window._openDP) window._openDP(); };
+        window.openAbout = window.openAbout || function() { if (window._openAbout) window._openAbout(); };
+        window.launchBrowser = window.launchBrowser || function() { if (window._launchBrowser) window._launchBrowser(); };
+        window.openNativeCalc = window.openNativeCalc || function() { if (window._openNativeCalc) window._openNativeCalc(); };
+        window.openNativeNotepad = window.openNativeNotepad || function() { if (window._openNativeNotepad) window._openNativeNotepad(); };
+        window.openMyComputer = window.openMyComputer || function() { if (window._openMyComputer) window._openMyComputer(); };
+    </script>
 </head>
 <body>
 
@@ -773,7 +794,7 @@
     </div>
 </div>
 
-<script src="js/audio.js"></script>
-<script src="js/main.js"></script>
+<script src="js/audio.js?v=1.2.0"></script>
+<script src="js/main.js?v=1.2.0"></script>
 </body>
 </html>

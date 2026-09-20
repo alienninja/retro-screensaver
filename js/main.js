@@ -1,8 +1,9 @@
 // ============================================================
-// VERSION
+// VERSION & CONSTANTS
 // ============================================================
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.2.0';
 const APP_BUILD = '1998.02.22'; // ;)
+const BASE_HIT_OFFSET = 42198;
 
 // ============================================================
 // SCREENSAVER METADATA
@@ -119,6 +120,13 @@ function launchSS(ssKey) {
     makeDraggable(win, document.getElementById('tb-' + id));
     makeResizable(win);
     bringToFront(win);
+    win.addEventListener('mousedown', () => {
+        bringToFront(win);
+        const iframe = win.querySelector('iframe');
+        if (iframe && iframe.contentWindow) {
+            try { iframe.contentWindow.focus(); } catch (e) {}
+        }
+    });
 
     windows[id] = { el: win, ssKey, id, iframeEl: null, maxed: false, clockInterval: null };
     loadSSIntoWindow(id, ssKey);
@@ -128,6 +136,29 @@ function launchSS(ssKey) {
         if (e) e.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
     }, 1000);
     return id;
+}
+window.launchSS = launchSS;
+window._launchSS = launchSS;
+
+function openWinamp() {
+    launchSS('winamp');
+}
+window.openWinamp = openWinamp;
+
+function openSkiFree() {
+    launchSS('skifree');
+}
+window.openSkiFree = openSkiFree;
+
+function openGuestbook() {
+    launchSS('guestbook');
+}
+window.openGuestbook = openGuestbook;
+
+if (window._pendingSS) {
+    const p = window._pendingSS;
+    window._pendingSS = null;
+    launchSS(p);
 }
 
 function loadSSIntoWindow(id, ssKey) {
@@ -146,6 +177,7 @@ function loadSSIntoWindow(id, ssKey) {
         if (st) st.textContent = 'Running';
         try {
             iframe.contentWindow.postMessage({ cfg: SS_CFG[ssKey] }, '*');
+            iframe.contentWindow.focus();
         } catch (e) {}
     };
     
@@ -157,7 +189,7 @@ function loadSSIntoWindow(id, ssKey) {
 const CYCLE = [
     'flying-windows', 'flying-toasters', 'pipes', 'maze', 'flowerbox',
     'mystify', 'starfield', 'matrix', 'dvd', 'aquarium', 'bsod',
-    'text3d', 'defrag', 'defrag-retro', 'winamp', 'skifree'
+    'text3d', 'defrag', 'defrag-retro', 'winamp', 'skifree', 'guestbook'
 ];
 
 function cycleWin(id, dir) {
@@ -909,7 +941,8 @@ function startPreview(id) {
         defrag: () => prevDefrag98(ctx, canvas),
         'defrag-retro': () => prevDefrag(ctx, canvas),
         winamp: () => prevWinamp(ctx, canvas),
-        skifree: () => prevSkiFree(ctx, canvas)
+        skifree: () => prevSkiFree(ctx, canvas),
+        guestbook: () => prevGuestbook(ctx, canvas)
     }[id] || (() => {}))();
 }
 
@@ -1620,6 +1653,52 @@ function prevSkiFree(ctx, c) {
     frame();
 }
 
+function prevGuestbook(ctx, c) {
+    let t = 0;
+    function frame() {
+        t++;
+        // Retro parchment background
+        ctx.fillStyle = '#ffffe6';
+        ctx.fillRect(0, 0, c.width, c.height);
+
+        // Header bar
+        ctx.fillStyle = '#5c1080';
+        ctx.fillRect(6, 6, c.width - 12, 16);
+        ctx.fillStyle = '#ffff00';
+        ctx.font = 'bold 8px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('★ 1998 GUESTBOOK ★', c.width / 2, 17);
+
+        // Entry 1
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#c0a060';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(8, 26, c.width - 16, 22);
+        ctx.fillRect(8, 26, c.width - 16, 22);
+
+        ctx.fillStyle = '#000080';
+        ctx.font = '7px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Name: Surfer98', 12, 35);
+        ctx.fillStyle = '#444';
+        ctx.fillText('Cool site! A/S/L? *~', 12, 44);
+
+        // Entry 2
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeRect(8, 52, c.width - 16, 22);
+        ctx.fillRect(8, 52, c.width - 16, 22);
+
+        ctx.fillStyle = '#000080';
+        ctx.fillText('Name: Neo', 12, 61);
+        ctx.fillStyle = '#444';
+        const cur = (t % 30 < 15) ? '_' : ' ';
+        ctx.fillText('Follow the white rabbit' + cur, 12, 70);
+
+        prevAnimId = requestAnimationFrame(frame);
+    }
+    frame();
+}
+
 // ── Volume Control Popup ─────────────────────────────────
 function toggleVolumeControl() {
     const pop = document.getElementById('vol-popup');
@@ -1907,6 +1986,12 @@ TIPS & SECRETS:
     openNativeNotepad('Readme.txt - Notepad', text);
 }
 window.openReadme = openReadme;
+window._openReadme = openReadme;
+
+if (window._pendingReadme) {
+    window._pendingReadme = false;
+    openReadme();
+}
 
 function openWinamp() {
     launchSS('winamp');
@@ -2178,8 +2263,6 @@ function closeGatekeeper() {
 window.closeGatekeeper = closeGatekeeper;
 
 // ── 90s Real Global Web Hit Counter & Desktop Sticky Note ──
-const BASE_HIT_OFFSET = 42198;
-
 function renderDigits(containerId, count, digitClass) {
     const el = document.getElementById(containerId);
     if (!el) return;
@@ -2263,5 +2346,38 @@ function initWebCounter() {
     fetchRealVisitorCount();
 }
 window.initWebCounter = initWebCounter;
+
+// ── Comprehensive Global Window Bindings ──────────────────
+window.openDP = openDP;
+window._openDP = openDP;
+window.closeDP = closeDP;
+window.openAbout = openAbout;
+window._openAbout = openAbout;
+window.launchBrowser = launchBrowser;
+window._launchBrowser = launchBrowser;
+window.openRun = openRun;
+window._openRun = openRun;
+window.closeRun = closeRun;
+window.execRun = execRun;
+window.openShutDown = openShutDown;
+window._openShutDown = openShutDown;
+window.closeShutDown = closeShutDown;
+window.doShutDown = doShutDown;
+window.restartWindows = restartWindows;
+window.openDonate = openDonate;
+window._openDonate = openDonate;
+window.closeDonate = closeDonate;
+window.openMyComputer = openMyComputer;
+window._openMyComputer = openMyComputer;
+window.openNativeCalc = openNativeCalc;
+window._openNativeCalc = openNativeCalc;
+window.openNativeNotepad = openNativeNotepad;
+window._openNativeNotepad = openNativeNotepad;
+window.toggleVolumeControl = toggleVolumeControl;
+window.toggleStart = toggleStart;
+window.closeStart = closeStart;
+window.closeAllMenus = closeAllMenus;
+window.arrangeIcons = arrangeIcons;
+
 
 

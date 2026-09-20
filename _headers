@@ -15,7 +15,7 @@
   Cache-Control: public, max-age=300
 
 /index.html
-  Cache-Control: public, max-age=60
+  Cache-Control: public, max-age=0, must-revalidate
 
 # Three.js is pinned to r128 — cache aggressively
 /js/three.r128.min.js
